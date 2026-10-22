@@ -1,0 +1,13 @@
+[package]
+name = "filewheel"
+version = "0.1.0"
+edition = "2024"
+description = "A local drag-and-drop file converter for Linux"
+license = "MIT"
+
+[dependencies]
+gtk = { package = "gtk4", version = "=0.10.3", features = ["v4_10"] }
+
+[profile.release]
+opt-level = "s"
+strip = true

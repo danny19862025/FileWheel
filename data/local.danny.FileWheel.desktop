@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=FileWheel
+GenericName=File Converter
+Keywords=file;files;convert;converter;conversion;image;photo;video;audio;PDF;compress;compression;archive;zip;wheel;FanDrop;drag;drop;
+Comment=Convert and work with files locally using a radial menu
+Exec=filewheel %F
+Icon=filewheel
+Terminal=false
+Categories=Utility;FileTools;
+StartupNotify=true
+StartupWMClass=local.danny.FileWheel
+MimeType=image/png;image/jpeg;image/webp;image/heic;image/heif;image/tiff;image/avif;image/bmp;image/svg+xml;image/gif;application/pdf;audio/mpeg;audio/mp4;audio/x-wav;audio/flac;audio/ogg;audio/opus;audio/x-aiff;audio/x-ms-wma;video/mp4;video/quicktime;video/x-matroska;video/webm;video/x-msvideo;video/x-ms-wmv;text/plain;text/markdown;text/rtf;text/html;application/rtf;application/msword;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.apple.pages;application/x-iwork-pages-sffpages;application/epub+zip;application/vnd.ms-powerpoint;application/vnd.openxmlformats-officedocument.presentationml.presentation;application/vnd.ms-excel;application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.oasis.opendocument.spreadsheet;text/csv;text/tab-separated-values;application/x-subrip;text/vtt;application/zip;application/x-tar;application/gzip;application/vnd.rar;application/x-rar;
+Actions=Background;
+
+[Desktop Action Background]
+Name=Show floating drop target
+Exec=filewheel --background
