@@ -47,6 +47,7 @@ an Ubuntu 24.04-based desktop does not gain newer packages by using the Ubuntu
 | Python 3 (`python3`) | EPUB, macOS text clipping and gzip adapters |
 | `sha256sum` | Hashing; normally provided by GNU coreutils |
 | qpdf | Optional PDF metadata removal |
+| libcanberra | Optional soft hover sound; needs a working desktop audio backend |
 | xdg-utils, a desktop session and fonts | Desktop integration and useful document rendering |
 
 Conversion engines are optional for launching FileWheel: missing engines disable
@@ -287,6 +288,30 @@ works without a distribution-specific installer. If they are unavailable, use
 Nix where supported or a desktop container with a supported dependency set.
 
 ## Check the prerequisites
+
+### Optional hover sound
+
+FileWheel's glow works without audio packages. For the hover sound, install the
+libcanberra runtime and the backend matching your audio session, then reopen the
+app. It is loaded optionally, so its absence does not prevent startup.
+
+| Distribution | Runtime package |
+| --- | --- |
+| Arch family | `libcanberra` |
+| Ubuntu / Debian | `libcanberra0` and, for PulseAudio/PipeWire-Pulse sessions, `libcanberra-pulse` |
+| Fedora | `libcanberra` |
+| Gentoo | `media-libs/libcanberra` with the backend for your desktop |
+| openSUSE | `libcanberra0` and the appropriate backend from your repositories |
+| Void / Alpine | `libcanberra` and the backend available for your release |
+| Nix flake | Included in the app's wrapped runtime library path |
+
+Test playback with `filewheel --sound-test`. Check your event-sound volume/mute
+state if playback is accepted but inaudible. Disable sound independently from
+glow under **Appearance → Hover feedback**.
+
+Source: [libcanberra and its audio backends](https://0pointer.de/lennart/projects/libcanberra/).
+
+### Build and conversion tools
 
 ```sh
 rustc --version

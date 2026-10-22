@@ -5,6 +5,10 @@ It builds the Rust application, installs its launcher/icon, and wraps it with
 GTK settings and conversion engines on PATH. You do not need to add all the
 conversion engines separately to your system configuration.
 
+The wrapper also supplies optional `libcanberra` for soft hover sounds. Choose
+your theme, custom accent and sound/glow switches from **Appearance**. Your host
+desktop still provides the audio session and the portal used by Follow system.
+
 The flake uses Nixpkgs 26.05 with the revision pinned in `flake.lock`. ARM output
 is provided as a recipe; it has not been tested on ARM hardware. Graphical
 behavior still depends on the desktop/compositor described in the

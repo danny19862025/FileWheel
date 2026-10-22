@@ -1,35 +1,57 @@
-window { background: #17191c; color: #eff0f2; }
-headerbar { background: #17191c; box-shadow: none; border: 0; }
+window { background: @fw_bg; color: @fw_text; }
+label { color: @fw_text; }
+button label, button:backdrop label, checkbutton label, checkbutton:backdrop label { color: inherit; }
+headerbar { background: @fw_bg; box-shadow: none; border: 0; }
 window.overlay, window.pad { background: transparent; }
 .shell { padding: 12px 24px 22px; }
-.wordmark { color: #eff0f2; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
-.eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: #fc9259; }
+.wordmark { color: @fw_text; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+.eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: @fw_accent_label; }
 .hero { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
-.muted { color: #969ba4; font-size: 12px; }
+.muted { color: @fw_muted; font-size: 12px; }
 .small { font-size: 11px; }
-button { border: 0; box-shadow: none; background: #292c32; color: #eeeff1; border-radius: 10px; padding: 9px 13px; font-size: 12px; }
-button:hover { background: #373b43; }
-button:focus-visible { outline: 2px solid #fc9259; outline-offset: 2px; }
-button.primary { background: #fc9259; color: #22160f; font-weight: 700; }
-button.primary:hover { background: #ffa36f; }
-button.quiet { background: transparent; color: #aeb3bc; }
-button.mode { background: transparent; color: #969ba4; padding: 10px 20px; font-weight: 700; }
-button.mode.active { background: #393028; color: #ffad7f; }
-.segments { background: #202227; border-radius: 12px; padding: 4px; }
-.file-card { background: #202328; border-radius: 16px; padding: 16px; }
-.file-row { padding: 9px 0; border-bottom: 1px solid #303239; }
+button { border: 0; box-shadow: none; background: @fw_button; color: @fw_text; border-radius: 10px; padding: 9px 13px; font-size: 12px; }
+button:hover { background: @fw_hover; box-shadow: 0 0 0 1px alpha(@fw_accent,0.5), 0 0 14px 1px alpha(@fw_accent,0.24); }
+window.no-hover-glow button:hover, button:disabled:hover { box-shadow: none; }
+button.effect-preview-active { box-shadow: 0 0 0 2px alpha(@fw_accent,0.8), 0 0 22px 4px alpha(@fw_accent,0.45); }
+window.no-hover-glow button.effect-preview-active { box-shadow: none; }
+button:focus-visible { outline: 2px solid @fw_accent; outline-offset: 2px; }
+button.primary { background: @fw_accent; color: @fw_accent_ink; font-weight: 700; }
+button.primary:hover { background: shade(@fw_accent,1.08); }
+button.quiet { background: transparent; color: @fw_muted; }
+button.mode { background: transparent; color: @fw_muted; padding: 10px 20px; font-weight: 700; }
+button.mode.active { background: @fw_accent_soft; color: @fw_accent_label; }
+.segments { background: @fw_surface; border-radius: 12px; padding: 4px; }
+.file-card { background: @fw_surface; border-radius: 16px; padding: 16px; }
+.file-row { padding: 9px 0; border-bottom: 1px solid @fw_border; }
 .file-title { font-size: 12px; font-weight: 650; }
-.file-kind { font-size: 10px; color: #8e949e; }
-.section-label { font-size: 10px; color: #8f959f; font-weight: 800; letter-spacing: 1.5px; }
-.status-card { background: #202328; border-radius: 14px; padding: 15px 18px; }
-.status-title { color: #eff0f2; font-size: 13px; font-weight: 650; }
-.success { color: #91d9ad; }
-.error { color: #ffa28e; }
-.pill { background: #2e2925; color: #e8a37a; border-radius: 20px; padding: 5px 9px; font-size: 10px; }
-.operation { padding: 7px 10px; font-size: 11px; background: #24272c; }
-button:disabled { color: #626873; background: #1e2025; }
-progressbar trough { background: #34373d; border-radius: 4px; min-height: 4px; }
-progressbar progress { background: #fc9259; border-radius: 4px; }
-.floating-wheel { background: alpha(#17191c,0.98); border: 1px solid #424048; border-radius: 24px; padding: 12px; }
-tooltip { background: #30333b; color: #fff; }
-textview, textview text { background: #1d2025; color: #eff0f2; }
+.file-kind { font-size: 10px; color: @fw_muted; }
+.section-label { font-size: 10px; color: @fw_muted; font-weight: 800; letter-spacing: 1.5px; }
+.status-card { background: @fw_surface; border-radius: 14px; padding: 15px 18px; }
+.status-title { color: @fw_text; font-size: 13px; font-weight: 650; }
+/* Private classes avoid the desktop theme's .error infobar background. */
+label.fw-success, label.fw-error { background: transparent; box-shadow: none; border: 0; padding: 0; }
+label.fw-success { color: @fw_success; }
+label.fw-error { color: @fw_error; }
+.pill { background: @fw_accent_soft; color: @fw_accent_label; border-radius: 20px; padding: 5px 9px; font-size: 10px; }
+.operation { padding: 7px 10px; font-size: 11px; background: @fw_button; }
+button:disabled { color: @fw_disabled; background: @fw_surface; }
+progressbar trough { background: @fw_border; border-radius: 4px; min-height: 4px; }
+progressbar progress { background: @fw_accent; border-radius: 4px; }
+.floating-wheel { background: alpha(@fw_bg,0.98); border: 1px solid @fw_border; border-radius: 24px; padding: 12px; }
+tooltip { background: @fw_button; color: @fw_text; }
+textview, textview text { background: @fw_surface; color: @fw_text; }
+
+entry { background: @fw_surface; color: @fw_text; padding: 9px 12px; border: 1px solid @fw_border; border-radius: 10px; }
+entry:focus-within { outline: 2px solid @fw_accent_label; outline-offset: 2px; }
+entry.invalid { outline: 2px solid @fw_error; }
+popover, popover contents { background: @fw_surface; color: @fw_text; }
+dropdown button { background: @fw_button; }
+checkbutton { color: @fw_text; }
+checkbutton check { background: @fw_surface; border-color: @fw_border; }
+checkbutton check:checked { background: @fw_accent; color: @fw_accent_ink; }
+.appearance-shell { padding: 24px; }
+.appearance-title { font-size: 23px; font-weight: 800; letter-spacing: -0.5px; }
+.appearance-card { background: @fw_surface; border-radius: 14px; padding: 18px; }
+button.swatch { padding: 7px; border: 2px solid transparent; border-radius: 50%; min-width: 24px; min-height: 24px; }
+button.swatch:checked { border-color: @fw_accent_label; background: @fw_accent_soft; }
+.appearance-preview { padding: 16px; border-radius: 12px; background: @fw_accent_soft; }

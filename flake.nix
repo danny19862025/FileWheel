@@ -54,6 +54,7 @@
 
             preFixup = ''
               gappsWrapperArgs+=(--prefix PATH : ${pkgs.lib.makeBinPath (enginesFor pkgs)})
+              gappsWrapperArgs+=(--prefix LD_LIBRARY_PATH : ${pkgs.lib.makeLibraryPath [ pkgs.libcanberra ]})
             '';
 
             meta = with pkgs.lib; {

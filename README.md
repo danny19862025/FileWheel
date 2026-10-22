@@ -8,6 +8,16 @@ Run `filewheel` from a terminal or open **FileWheel** in your application launch
 
 Choose **About** in the header to see the embedded FileWheel logo, app version, and **Created by Danny**. Close it with **×** or Escape. The version comes from the Cargo package metadata.
 
+Choose **Appearance** to switch between **Dark**, **Light**, and **Follow system**. Pick one of eight accent colors, use the native color picker, or enter a `#RRGGBB` color. The window, wheel and floating target update immediately, with contrasting text chosen for your accent. **Restore defaults** returns to dark/orange.
+
+The wheel uses rounded wedge buttons with soft shadows, icons above each label, and a pill in the center. Hovering an available operation highlights its wedge in your chosen accent. Gaps and cut-away corners do not activate operations when clicked or dropped onto. The Appearance window scrolls on smaller screens. Click **Test effects** to replay the enabled sound and briefly highlight the button; the caption shows which effects are being tested, or prompts you to enable one if both are off. See the [rounded buttons](docs/screenshots/filewheel-rounded-buttons.png) and [updated Appearance panel](docs/screenshots/filewheel-hover-preview.png).
+
+Buttons and enabled wheel segments have a soft accent glow and a short, quiet hover sound. Turn either effect off under **Appearance → Hover feedback**. Sound is rate-limited, uses your desktop's event-audio volume, and needs optional `libcanberra`; the Nix package supplies it. Preferences save automatically to `${XDG_CONFIG_HOME:-~/.config}/filewheel/appearance.conf`. Follow system listens to the desktop settings portal and falls back to the initial GTK theme when that portal is unavailable.
+
+| Light theme with blue accent | Appearance controls |
+| --- | --- |
+| ![FileWheel in light mode with a blue wheel highlight](docs/screenshots/filewheel-light.png) | ![Theme, accent color, custom color, and hover feedback controls](docs/screenshots/filewheel-appearance.png) |
+
 Use **Convert**, **Tools**, or **Actions** to switch menus. While pointing at a wheel or dragging over it, **Shift** selects Convert, **Ctrl** selects Tools, and **Alt** selects Actions. Arrow keys select a segment, Enter applies it, and Escape hides the floating wheel. The buttons below the main wheel provide keyboard-accessible versions of the same operations.
 
 Outputs are saved beside the originals. Existing names receive a numeric suffix starting at 2. Jobs run in the background, show real errors, and can be cancelled. Quitting during a job cancels the current converter before exiting. **Trash** asks for confirmation and uses the desktop Trash.
@@ -60,8 +70,11 @@ cargo test
 python3 tests/formats_test.py
 target/release/filewheel --self-test
 FILEWHEEL_SCREENSHOT=/tmp/filewheel.png target/release/filewheel --smoke-test
+target/release/filewheel --sound-test
 ```
 
 Unit/import tests check file-family routing, input-only restrictions, missing engines/codecs, subtitle cue text, EPUB packages, macOS clipping resource forks, collision-safe output reservation, cancellation/timeouts with wrapper children, dotted office filenames, clipboard operations on read-only inputs, exclusion of document contents from the written job log, and radial hit-test boundaries/gaps. Run the Rust tests as an unprivileged user so filesystem permission regressions are meaningful. The self-test generates temporary fixtures and exercises the conversion presets and tools, multi-page PDF export, DOCX text round trips with dotted filenames, real clipboard operations in a non-writable folder, failed-conversion cleanup, original preservation, and filenames containing quotes and shell punctuation. The GTK smoke test exercises mode buttons, the actual GTK drop signal handler, asynchronous conversion, result display, and mapping the Wayland target/wheel. It does not synthesize a physical drag from Dolphin or test every media preview plugin.
+
+Appearance regressions check saved preferences, invalid custom colors and text contrast. The GTK smoke also exercises theme/preset/custom-color changes, saved hover toggles, system-mode changes, reset, hover-controller routing and reopening the Appearance window, using an isolated temporary settings file. `--sound-test` plays one short hover cue through the real desktop audio backend.
 
 Source layout: `src/engine.rs` handles capabilities and jobs; `src/main.rs` owns the UI, clipboard and desktop actions; `src/wheel.rs` draws and hit-tests the radial menu; `src/layer.rs` contains the small layer-shell FFI adapter; `src/smoke.rs` contains the real-file verification harness.

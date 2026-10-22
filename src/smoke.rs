@@ -561,14 +561,196 @@ pub fn ui(ui: &Rc<Ui>) {
                         }
                     }
                     formats.close();
-                    drop(fixture);
                     println!(
                         "PASS: nine-format PDF menu, unavailable Pages export, and Formats reference window."
                     );
-                    u.app.quit();
+                    appearance_ui(u, fixture);
                 });
             });
         });
         glib::ControlFlow::Break
+    });
+}
+
+fn appearance_snapshot(widget: &impl IsA<gtk::Widget>, name: &str) {
+    if let Some(path) = std::env::var_os("FILEWHEEL_SCREENSHOT") {
+        let widget = widget.as_ref();
+        let snapshot = gtk::Snapshot::new();
+        gtk::WidgetPaintable::new(Some(widget)).snapshot(
+            &snapshot,
+            widget.width() as f64,
+            widget.height() as f64,
+        );
+        let window = widget
+            .downcast_ref::<gtk::Window>()
+            .expect("Screenshot window");
+        let node = snapshot.to_node().expect("Appearance render node");
+        window
+            .renderer()
+            .unwrap()
+            .render_texture(&node, None)
+            .save_to_png(PathBuf::from(path).with_file_name(name))
+            .expect("Appearance screenshot");
+    }
+}
+
+fn appearance_ui(ui: Rc<Ui>, fixture: Option<WorkDir>) {
+    use crate::appearance::{ACCENTS, Color, Preferences, Theme};
+    let file = fixture.as_ref().unwrap().path.join("appearance.conf");
+    *ui.appearance_file.borrow_mut() = Some(file.clone());
+    let image = ui.paths.borrow()[0].with_extension("png");
+    ui.set_paths(vec![image], false);
+    ui.show_appearance();
+    let (theme, blue, hex, custom, sound, glow, reset, window, preview, preview_label) = {
+        let dialog = ui.appearance_dialog.borrow();
+        let d = dialog.as_ref().unwrap();
+        (
+            d.theme.clone(),
+            d.swatches[5].1.clone(),
+            d.hex.clone(),
+            d.custom.clone(),
+            d.sound.clone(),
+            d.glow.clone(),
+            d.reset.clone(),
+            d.window.clone(),
+            d.preview.clone(),
+            d.preview_label.clone(),
+        )
+    };
+    theme.set_selected(1);
+    blue.emit_clicked();
+    assert_eq!(ui.appearance.get().theme, Theme::Light);
+    assert_eq!(ui.appearance.get().accent, ACCENTS[5].1);
+    assert_eq!(Preferences::load(&file), ui.appearance.get());
+    hex.set_text("#oops");
+    hex.emit_activate();
+    assert!(hex.has_css_class("invalid"));
+    assert_eq!(ui.appearance.get().accent, ACCENTS[5].1);
+    hex.set_text("#123456");
+    hex.emit_activate();
+    assert_eq!(ui.appearance.get().accent, Color(18, 52, 86));
+    assert!(!hex.has_css_class("invalid"));
+    custom.set_rgba(&gdk::RGBA::new(87. / 255., 157. / 255., 246. / 255., 1.));
+    assert_eq!(ui.appearance.get().accent, ACCENTS[5].1);
+    sound.set_active(false);
+    glow.set_active(false);
+    assert!(!ui.appearance.get().hover_sound);
+    assert!(!ui.appearance.get().hover_glow);
+    assert!(ui.window.has_css_class("no-hover-glow"));
+    assert_eq!(Preferences::load(&file), ui.appearance.get());
+    preview.emit_clicked();
+    assert_eq!(preview_label.text(), "Turn on an effect above.");
+    assert!(!preview.has_css_class("effect-preview-active"));
+    sound.set_active(true);
+    preview.emit_clicked();
+    assert_eq!(preview_label.text(), "Sound preview");
+    assert!(!preview.has_css_class("effect-preview-active"));
+    sound.set_active(false);
+    glow.set_active(true);
+    preview.emit_clicked();
+    assert_eq!(preview_label.text(), "Glow preview");
+    assert!(preview.has_css_class("effect-preview-active"));
+    sound.set_active(true);
+    let saved = std::fs::read_to_string(&file).unwrap();
+    preview.emit_clicked();
+    assert_eq!(preview_label.text(), "Sound + glow");
+    assert!(preview.has_css_class("effect-preview-active"));
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), saved);
+    // Dispatch a real controller enter signal, not just a direct audio call.
+    let button = ui.mode_buttons[0].clone();
+    let controllers = button.observe_controllers();
+    let motion = (0..controllers.n_items())
+        .filter_map(|i| {
+            controllers
+                .item(i)
+                .and_downcast::<gtk::EventControllerMotion>()
+        })
+        .next()
+        .expect("Button hover controller");
+    motion.emit_by_name::<()>("enter", &[&0f64, &0f64]);
+    ui.hover.set(Some(0));
+    ui.redraw();
+    glib::timeout_add_local_once(Duration::from_millis(450), move || {
+        appearance_snapshot(&ui.window, "filewheel-light.png");
+        appearance_snapshot(&window, "filewheel-appearance-light.png");
+        appearance_snapshot(&ui.floating, "filewheel-floating-light.png");
+        appearance_snapshot(&ui.pad, "filewheel-target-light.png");
+        theme.set_selected(0);
+        ui.set_appearance(Preferences {
+            accent: ACCENTS[6].1,
+            ..ui.appearance.get()
+        });
+        glib::timeout_add_local_once(Duration::from_millis(450), move || {
+            appearance_snapshot(&ui.window, "filewheel-dark-violet.png");
+            appearance_snapshot(&window, "filewheel-appearance-dark.png");
+            // Repeated preview clicks restart one temporary pulse, then return
+            // to the ordinary appearance without changing saved preferences.
+            assert!(!preview.has_css_class("effect-preview-active"));
+            assert_eq!(preview_label.text(), "Effect preview");
+            theme.set_selected(2);
+            ui.set_system_scheme(2);
+            assert_eq!(
+                ui.palette().bg,
+                crate::appearance::Palette::new(
+                    Preferences {
+                        theme: Theme::Light,
+                        ..ui.appearance.get()
+                    },
+                    false
+                )
+                .bg
+            );
+            ui.set_system_scheme(1);
+            assert_eq!(
+                ui.palette().bg,
+                crate::appearance::Palette::new(
+                    Preferences {
+                        theme: Theme::Dark,
+                        ..ui.appearance.get()
+                    },
+                    true
+                )
+                .bg
+            );
+            reset.emit_clicked();
+            assert_eq!(ui.appearance.get(), Preferences::default());
+            assert_eq!(Preferences::load(&file), Preferences::default());
+            window.close();
+            assert!(!window.is_visible());
+            ui.show_appearance();
+            assert!(window.is_visible());
+            window.close();
+            *ui.appearance_file.borrow_mut() = None;
+            println!(
+                "PASS: dark/light/system appearance, presets, custom picker/hex validation, persisted hover toggles, reset, button hover routing, effect-preview clicks/toggle combinations/timeout and reopening."
+            );
+            // Show the rounded action buttons with the reference's light/orange
+            // palette, without changing the user's saved appearance.
+            ui.mode_buttons[2].emit_clicked();
+            ui.set_appearance(Preferences {
+                theme: Theme::Light,
+                ..Preferences::default()
+            });
+            ui.hover.set(Some(1));
+            ui.redraw();
+            glib::timeout_add_local_once(Duration::from_millis(450), move || {
+                appearance_snapshot(&ui.window, "filewheel-rounded-buttons.png");
+                appearance_snapshot(&ui.floating, "filewheel-rounded-floating.png");
+                ui.set_paths(vec![], false);
+                ui.start("Open");
+                assert_eq!(ui.status.text(), "Not available");
+                assert_eq!(ui.detail.text(), "Add a file first");
+                glib::timeout_add_local_once(Duration::from_millis(250), move || {
+                    appearance_snapshot(&ui.window, "filewheel-light-unavailable.png");
+                    ui.set_appearance(Preferences::default());
+                    glib::timeout_add_local_once(Duration::from_millis(250), move || {
+                        appearance_snapshot(&ui.window, "filewheel-dark-unavailable.png");
+                        println!("PASS: unavailable-operation status in light and dark themes.");
+                        drop(fixture);
+                        ui.app.quit();
+                    });
+                });
+            });
+        });
     });
 }

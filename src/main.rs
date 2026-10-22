@@ -1,8 +1,12 @@
+mod appearance;
+mod appearance_ui;
 mod engine;
+mod feedback;
 mod layer;
 mod smoke;
 mod wheel;
 
+use appearance::{Color, Palette, Preferences};
 use engine::{Kind, Mode, Tools};
 use gtk::{gdk, gio, glib, prelude::*};
 use std::{
@@ -35,6 +39,14 @@ struct Ui {
     stop: gtk::Button,
     reveal: gtk::Button,
     mode_buttons: Vec<gtk::Button>,
+    pad_area: gtk::DrawingArea,
+    appearance: Cell<Preferences>,
+    system_dark: Cell<bool>,
+    appearance_file: RefCell<Option<PathBuf>>,
+    appearance_dialog: RefCell<Option<AppearanceDialog>>,
+    css: gtk::CssProvider,
+    theme_subscription: RefCell<Option<gio::SignalSubscription>>,
+    hover_sound: feedback::HoverSound,
     paths: RefCell<Vec<PathBuf>>,
     drag_paths: RefCell<Option<Vec<PathBuf>>>,
     results: RefCell<Vec<PathBuf>>,
@@ -47,6 +59,20 @@ struct Ui {
     layer_supported: bool,
     quitting: Cell<bool>,
 }
+struct AppearanceDialog {
+    window: gtk::Window,
+    theme: gtk::DropDown,
+    swatches: Vec<(Color, gtk::ToggleButton)>,
+    custom: gtk::ColorDialogButton,
+    hex: gtk::Entry,
+    reset: gtk::Button,
+    status: gtk::Label,
+    sound: gtk::CheckButton,
+    glow: gtk::CheckButton,
+    preview: gtk::Button,
+    preview_label: gtk::Label,
+    preview_timer: RefCell<Option<glib::SourceId>>,
+}
 enum Event {
     Progress(usize, usize, String),
     Finished(PathBuf, engine::Result<engine::Completed>),
@@ -55,6 +81,25 @@ enum Event {
 
 impl Ui {
     fn new(app: &gtk::Application, testing: bool) -> Rc<Self> {
+        let appearance_file = if testing { None } else { Preferences::path() };
+        let appearance = appearance_file
+            .as_deref()
+            .map(Preferences::load)
+            .unwrap_or_default();
+        let system_dark = gtk::Settings::default().is_some_and(|s| {
+            s.is_gtk_application_prefer_dark_theme()
+                || s.gtk_theme_name()
+                    .is_some_and(|name| name.to_ascii_lowercase().contains("dark"))
+        });
+        let css = gtk::CssProvider::new();
+        css.load_from_data(&Palette::new(appearance, system_dark).css());
+        if let Some(display) = gdk::Display::default() {
+            gtk::style_context_add_provider_for_display(
+                &display,
+                &css,
+                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+            );
+        }
         let window = gtk::ApplicationWindow::builder()
             .application(app)
             .title("FileWheel")
@@ -85,7 +130,11 @@ impl Ui {
         let formats = gtk::Button::with_label("Formats");
         formats.set_tooltip_text(Some("Supported formats and conversion notes"));
         header.pack_end(&formats);
+        let appearance_button = gtk::Button::with_label("Appearance");
+        appearance_button.set_tooltip_text(Some("Theme and accent color"));
+        header.pack_end(&appearance_button);
         let about_dialog = gtk::AboutDialog::builder()
+            .application(app)
             .transient_for(&window)
             .modal(true)
             .hide_on_close(true)
@@ -291,14 +340,6 @@ impl Ui {
             .content_height(94)
             .build();
         pad.set_child(Some(&pad_area));
-        pad_area.set_draw_func(|_, cr, _, _| {
-            cr.set_source_rgba(0.06, 0.065, 0.075, 0.9);
-            cr.arc(41., 39., 34., 0., std::f64::consts::TAU);
-            let _ = cr.fill();
-            cr.set_source_rgb(1., 0.49, 0.235);
-            wheel::fan(cr, 41., 39., 22.);
-            wheel::text(cr, "DROP", 41., 88., 9., true, (0.96, 0.65, 0.44));
-        });
         pad_area.set_tooltip_text(Some(
             "Drag files here, then onto the wheel. Click to open FileWheel.",
         ));
@@ -320,6 +361,14 @@ impl Ui {
             stop,
             reveal,
             mode_buttons,
+            pad_area: pad_area.clone(),
+            appearance: Cell::new(appearance),
+            system_dark: Cell::new(system_dark),
+            appearance_file: RefCell::new(appearance_file),
+            appearance_dialog: RefCell::new(None),
+            css,
+            theme_subscription: RefCell::new(None),
+            hover_sound: feedback::HoverSound::new(testing),
             paths: RefCell::new(vec![]),
             drag_paths: RefCell::new(None),
             results: RefCell::new(vec![]),
@@ -332,6 +381,34 @@ impl Ui {
             layer_supported,
             quitting: Cell::new(false),
         });
+        ui.update_theme();
+        ui.watch_system_theme();
+        let weak = Rc::downgrade(&ui);
+        pad_area.set_draw_func(move |_, cr, _, _| {
+            let Some(u) = weak.upgrade() else {
+                return;
+            };
+            let p = u.palette();
+            let (r, g, b) = p.bg.rgb();
+            cr.set_source_rgba(r, g, b, 0.96);
+            cr.arc(41., 39., 34., 0., std::f64::consts::TAU);
+            let _ = cr.fill_preserve();
+            let (r, g, b) = p.border.rgb();
+            cr.set_source_rgb(r, g, b);
+            cr.set_line_width(1.);
+            let _ = cr.stroke();
+            let (r, g, b) = p.accent.rgb();
+            cr.set_source_rgb(r, g, b);
+            wheel::fan(cr, 41., 39., 22.);
+            // Put the label on its own opaque pill so light text stays legible
+            // against both dark and light desktop wallpaper.
+            cr.set_source_rgb(p.bg.rgb().0, p.bg.rgb().1, p.bg.rgb().2);
+            cr.rectangle(14., 76., 54., 17.);
+            let _ = cr.fill();
+            wheel::text(cr, "DROP", 41., 88., 9., true, p.accent_label.rgb());
+        });
+        let u = ui.clone();
+        appearance_button.connect_clicked(move |_| u.show_appearance());
         let u = ui.clone();
         formats.connect_clicked(move |_| u.show_formats());
         for (i, mode) in [Mode::Convert, Mode::Tools, Mode::Actions]
@@ -395,7 +472,17 @@ impl Ui {
                     .widget()
                     .map(|w| w.width().min(w.height()))
                     .unwrap_or(390) as f64;
-                u.hover.set(wheel::hit(x, y, size, u.choices().len()));
+                let next = wheel::hit(x, y, size, u.choices().len());
+                if next != u.hover.get()
+                    && next.is_some_and(|i| {
+                        u.choices()
+                            .get(i)
+                            .is_some_and(|op| u.disabled(op).is_none())
+                    })
+                {
+                    u.play_hover();
+                }
+                u.hover.set(next);
                 u.redraw();
             });
             let u = ui.clone();
@@ -521,6 +608,7 @@ impl Ui {
     fn redraw(&self) {
         self.ring.queue_draw();
         self.floating_ring.queue_draw();
+        self.pad_area.queue_draw();
     }
     fn draw(&self, cr: &gtk::cairo::Context, size: f64) {
         let choices = self.choices();
@@ -554,6 +642,8 @@ impl Ui {
             !paths.is_empty(),
             center,
             &sub,
+            &self.palette(),
+            self.appearance.get().hover_glow,
         );
     }
     fn refresh(self: &Rc<Self>) {
@@ -622,6 +712,7 @@ impl Ui {
         } else {
             "Pick a segment or use the buttons below. Originals stay in place."
         });
+        self.attach_feedback();
     }
     fn set_paths(self: &Rc<Self>, paths: Vec<PathBuf>, append: bool) {
         let mut selected = if append {
@@ -683,7 +774,17 @@ impl Ui {
             u.modifiers(t.current_event_state());
             if execute {
                 let size = t.widget().map(|w| w.width().min(w.height())).unwrap_or(390) as f64;
-                u.hover.set(wheel::hit(x, y, size, u.choices().len()));
+                let next = wheel::hit(x, y, size, u.choices().len());
+                if next != u.hover.get()
+                    && next.is_some_and(|i| {
+                        u.choices()
+                            .get(i)
+                            .is_some_and(|op| u.disabled(op).is_none())
+                    })
+                {
+                    u.play_hover();
+                }
+                u.hover.set(next);
                 u.redraw();
             }
             gdk::DragAction::COPY
@@ -745,10 +846,10 @@ impl Ui {
         self.status.set_text(title);
         self.detail.set_text(detail);
         self.detail.set_tooltip_text(Some(detail));
-        self.status.remove_css_class("success");
-        self.status.remove_css_class("error");
+        self.status.remove_css_class("fw-success");
+        self.status.remove_css_class("fw-error");
         self.status
-            .add_css_class(if error { "error" } else { "success" });
+            .add_css_class(if error { "fw-error" } else { "fw-success" });
     }
     fn start(self: &Rc<Self>, op: &str) {
         if let Some(reason) = self.disabled(op) {
@@ -1014,7 +1115,7 @@ impl Ui {
         }
         window.present();
     }
-    fn show_formats(&self) {
+    fn show_formats(self: &Rc<Self>) {
         let window = gtk::Window::builder()
             .application(&self.app)
             .transient_for(&self.window)
@@ -1085,6 +1186,7 @@ impl Ui {
                 .child(&content)
                 .build(),
         ));
+        self.attach_feedback();
         window.present();
     }
     fn show_dependencies(&self) {
@@ -1214,6 +1316,16 @@ fn tray(ui: &Rc<Ui>) {
 
 fn main() {
     let args = std::env::args().collect::<Vec<_>>();
+    if args.iter().any(|a| a == "--sound-test") {
+        match feedback::self_test() {
+            Ok(()) => println!("PASS: desktop hover-sound playback."),
+            Err(error) => {
+                eprintln!("FAIL: {error}");
+                std::process::exit(1);
+            }
+        }
+        return;
+    }
     if args.iter().any(|a| a == "--self-test") {
         match smoke::backend() {
             Ok(()) => {}
@@ -1242,17 +1354,6 @@ fn main() {
         .build();
     let current: Rc<RefCell<Option<Rc<Ui>>>> = Rc::new(RefCell::new(None));
     let state = current.clone();
-    app.connect_startup(|_| {
-        let provider = gtk::CssProvider::new();
-        provider.load_from_data(include_str!("style.css"));
-        if let Some(display) = gdk::Display::default() {
-            gtk::style_context_add_provider_for_display(
-                &display,
-                &provider,
-                gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
-            );
-        }
-    });
     app.connect_activate(move |app| {
         if state.borrow().is_none() {
             let ui = Ui::new(app, testing);
@@ -1272,6 +1373,12 @@ fn main() {
         if let Some(ui) = state.borrow().as_ref() {
             ui.set_paths(files.iter().filter_map(|f| f.path()).collect(), true);
             ui.window.present();
+        }
+    });
+    let state = current.clone();
+    app.connect_shutdown(move |_| {
+        if let Some(ui) = state.borrow().as_ref() {
+            ui.hover_sound.stop();
         }
     });
     let mut argv = vec![args[0].clone()];
