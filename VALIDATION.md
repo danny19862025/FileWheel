@@ -33,3 +33,17 @@ Added AVIF/BMP image output, the requested audio/video formats, PDF document/tex
 - Installed/release SHA-256: `918bdd9f2451dfbfa8dc54c481378051c4b7b2cbfbfd159f8e22bb89a4f74b9e`.
 
 Pages export is explicitly unavailable; Pages import and RAR input rely on LibreOffice/libarchive and were not exercised with source fixtures in this expansion. PDF document/spreadsheet exports and EPUB adapters preserve text rather than reconstructing rich layout. PDF-to-PPTX imports page objects through Impress. CSV/TSV export the first worksheet. RTFD attachments are not preserved. See the in-app Formats notes and README for these boundaries.
+
+# Reliability and log privacy — 22 October 2026
+
+- Removed document/clipboard data and converter diagnostics from persisted job summaries. Regression checks the actual written log for both successful and failed jobs.
+- Corrected LibreOffice output lookup for names containing multiple dots. The real conversion suite now uses `notes.v2.final.txt`, including DOCX text round trips.
+- Isolated converter process groups and kill the full group on cancellation, timeout, or polling failure. Wrapper/descendant regressions cover both cancellation and timeout.
+- Moved SHA-256, Copy text, and Word count staging to the system temporary directory. Unit regressions and real LibreOffice/coreutils jobs pass with a readable source in a non-writable directory.
+- Added bounded ImageMagick format and FFmpeg encoder discovery. A fixture with absent writers/readers/encoders verifies disabled presets; media encoder checks share the conversion presets.
+- `cargo fmt --check`, release build, 13 Rust tests, and 3 Python tests: passed.
+- Release `--self-test`: 90 real conversion/tool jobs passed.
+- Release GTK smoke: passed drop routing, asynchronous conversion/results, layer-shell mapping, About behavior, PDF menu, and Formats window. GTK emitted the existing slider size warnings.
+- Added GitHub Actions for formatting, Rust/Python regressions, and real conversions in an Arch Linux container, running tests without root privileges.
+
+Historical log files are left intact; only newly written entries use the restricted summary. Engine capability lists do not establish that every input decoder, delegate, or runtime policy will allow a conversion. No local installed binary was replaced during this repository update.

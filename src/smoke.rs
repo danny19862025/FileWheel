@@ -187,7 +187,7 @@ pub fn backend() -> Result<(), String> {
             &["-v".as_ref(), "error".as_ref(), out.as_os_str()],
         )?;
     }
-    let document = work.path.join("notes.txt");
+    let document = work.path.join("notes.v2.final.txt");
     std::fs::write(&document, "Hello Linux.\nThese are four words.\n")
         .map_err(|e| e.to_string())?;
     for op in ["TXT", "MD", "HTML", "DOCX", "EPUB"] {
@@ -214,6 +214,32 @@ pub fn backend() -> Result<(), String> {
         .contains("Hello Linux")
     {
         return Err("Document text was lost".into());
+    }
+
+    // Use real LibreOffice/coreutils on a readable source in a non-writable folder.
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = work.path.join("read-only");
+        std::fs::create_dir(&dir).map_err(|e| e.to_string())?;
+        let input = dir.join("notes.v2.txt");
+        std::fs::copy(&document, &input).map_err(|e| e.to_string())?;
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o555))
+            .map_err(|e| e.to_string())?;
+        let result: Result<(), String> = (|| {
+            let hash = apply(&input, Mode::Tools, "SHA-256")?.clipboard.unwrap();
+            let text = apply(&input, Mode::Tools, "Copy text")?.clipboard.unwrap();
+            let words = apply(&input, Mode::Tools, "Word count")?.clipboard.unwrap();
+            if hash.len() != 64 || !text.contains("Hello Linux") || words != "6" {
+                return Err("Clipboard operations failed on read-only input".into());
+            }
+            if std::fs::read_dir(&dir).map_err(|e| e.to_string())?.count() != 1 {
+                return Err("Clipboard operation wrote beside read-only input".into());
+            }
+            Ok(())
+        })();
+        std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o700))
+            .map_err(|e| e.to_string())?;
+        result?;
     }
 
     // Exercise every newly added family against real files, with content/page checks.

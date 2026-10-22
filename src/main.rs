@@ -791,7 +791,7 @@ impl Ui {
                         .into(),
                 ));
                 let result = engine::run(&path, mode, &op, &tools, &cancel);
-                engine::log_job(&format!("{} / {} / {:?}", op, path.display(), result));
+                engine::log_job(&op, &path, &result);
                 let _ = tx.send(Event::Finished(path, result));
             }
             let _ = tx.send(Event::Done);
