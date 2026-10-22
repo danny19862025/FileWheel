@@ -44,6 +44,6 @@ Pages export is explicitly unavailable; Pages import and RAR input rely on Libre
 - `cargo fmt --check`, release build, 13 Rust tests, and 3 Python tests: passed.
 - Release `--self-test`: 90 real conversion/tool jobs passed.
 - Release GTK smoke: passed drop routing, asynchronous conversion/results, layer-shell mapping, About behavior, PDF menu, and Formats window. GTK emitted the existing slider size warnings.
-- Added GitHub Actions for formatting, Rust/Python regressions, and real conversions in an Arch Linux container, running tests without root privileges.
+- Prepared GitHub Actions for formatting, Rust/Python regressions, and real conversions in an Arch Linux container, running tests without root privileges. Publication is pending: GitHub rejected the configured token for missing `workflow` scope, and the connected integration also denied workflow creation. CI has not run remotely.
 
 Historical log files are left intact; only newly written entries use the restricted summary. Engine capability lists do not establish that every input decoder, delegate, or runtime policy will allow a conversion. No local installed binary was replaced during this repository update.
