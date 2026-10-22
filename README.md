@@ -2,6 +2,8 @@
 
 A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
 
+![FileWheel showing the image conversion wheel, file list, and a completed conversion](docs/screenshots/filewheel.png)
+
 Run `filewheel` from a terminal or open **FileWheel** in your application launcher. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
 
 Choose **About** in the header to see the embedded FileWheel logo, app version, and **Created by Danny**. Close it with **×** or Escape. The version comes from the Cargo package metadata.
