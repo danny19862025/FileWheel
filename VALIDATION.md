@@ -47,3 +47,13 @@ Pages export is explicitly unavailable; Pages import and RAR input rely on Libre
 - Prepared GitHub Actions for formatting, Rust/Python regressions, and real conversions in an Arch Linux container, running tests without root privileges. Publication is pending: GitHub rejected the configured token for missing `workflow` scope, and the connected integration also denied workflow creation. CI has not run remotely.
 
 Historical log files are left intact; only newly written entries use the restricted summary. Engine capability lists do not establish that every input decoder, delegate, or runtime policy will allow a conversion. No local installed binary was replaced during this repository update.
+
+# Distribution guides and Nix flake — 22 October 2026
+
+- Added installation recipes for Arch derivatives, Ubuntu derivatives, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops, enterprise distributions and other Linux systems. Recipes link to distribution/upstream sources and distinguish release requirements from tested installations.
+- Added a locked Nix flake with packages, apps, development shells and package checks for `x86_64-linux` and `aarch64-linux`. GTK wrapping, conversion engine PATH, launcher/icon installation and Nix-store subprocess fixture paths are included.
+- Added Nix run/profile installation, NixOS system-flake and Home Manager instructions.
+- Official Nix 2.31.5 parsed the flake and generated `flake.lock`. `nix flake check --no-build --all-systems` evaluated all advertised package/app/check/development-shell outputs successfully.
+- Parsed 25 documented shell blocks with `bash -n` and four Nix configuration snippets with Nix; checked 22 local documentation links/anchors.
+
+These checks did not build the complete Nix package, run it on NixOS/ARM hardware, or execute installation commands on the other distributions. Existing application code was unchanged by this guide/packaging update.
