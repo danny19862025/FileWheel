@@ -4,7 +4,7 @@ A native **Rust + GTK4** desktop app for converting files and applying quick fil
 
 ![FileWheel showing the image conversion wheel, file list, and a completed conversion](docs/screenshots/filewheel.png)
 
-Run `filewheel` from a terminal or open **FileWheel** in your application launcher. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
+After installation, run `"$HOME/.local/bin/filewheel"` from a terminal or open **FileWheel** in your application launcher. If `~/.local/bin` is on your PATH, `filewheel` also works. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
 
 Choose **About** in the header to see the embedded FileWheel logo, app version, and **Created by Danny**. Close it with **×** or Escape. The version comes from the Cargo package metadata.
 
@@ -51,11 +51,16 @@ Wayland restricts observing another application's file drags. Bring the drag ont
 
 Requires current stable Rust, **GTK ≥ 4.10** development files, and **gtk4-layer-shell**. Image conversion requires **ImageMagick 7** (`magick`). On Arch, runtime/conversion packages are `gtk4`, `gtk4-layer-shell`, `imagemagick`, `ffmpeg`, `libreoffice-fresh` (or `libreoffice-still`), `poppler`, `libarchive`, `coreutils`, and `python` (standard-library adapters for EPUB, text clippings and gzip input). Optional `qpdf` enables PDF document metadata removal. Missing engines disable their operations and are shown under **Conversion engines**. At startup FileWheel also queries ImageMagick's read/write format support and FFmpeg's encoders, disabling image formats and explicit media presets whose required codecs are absent. These checks use bounded engine queries; runtime policies, input decoders, and tools using a container's default codec can still affect conversion. Restart FileWheel after changing engines or codecs.
 
+After installing the dependencies for your distribution, clone the repository and run the installer:
+
 ```sh
-cargo build --release --locked
+git clone https://github.com/danny19862025/FileWheel.git
+cd FileWheel
 bash install.sh
-filewheel
+"$HOME/.local/bin/filewheel"
 ```
+
+If you already cloned FileWheel, open a terminal inside that **FileWheel folder** and run the last two lines. `install.sh` builds the release binary automatically; a separate `cargo build` command is not needed.
 
 The installer writes only to `~/.local/bin`, `~/.local/share/applications`, and `~/.local/share/icons`. No file associations are made the default. Core conversion jobs use executable paths and argument arrays without a shell. Job staging uses private temporary folders, reserves output names without replacing existing files, and cleans up failed/cancelled output. Cancellation and timeouts kill the converter's process group, including wrapper children. SHA-256, Copy text, and Word count stage in the system temporary directory, so they work with readable files in non-writable folders. File-producing operations still save beside the original.
 

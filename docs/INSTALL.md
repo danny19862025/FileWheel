@@ -340,16 +340,17 @@ Run as your normal desktop user after installing dependencies:
 ```sh
 git clone https://github.com/danny19862025/FileWheel.git
 cd FileWheel
-cargo build --release --locked
 bash install.sh
-export PATH="$HOME/.local/bin:$PATH"
-filewheel
+"$HOME/.local/bin/filewheel"
 ```
 
-`install.sh` builds the release if needed and installs only into your user
-account. Do **not** run it with `sudo`. Add `~/.local/bin` to your shell/session
-PATH permanently if it is not already there. Nix users should install the
-wrapped flake package instead of using this script.
+If you already cloned FileWheel, open a terminal inside that **FileWheel folder**
+and run the last two lines. `install.sh` builds the release binary automatically
+and installs only into your user account; a separate `cargo build` command is not
+needed. Do **not** run it with `sudo`. The full launcher path above works even
+when `~/.local/bin` is not on PATH. Add that directory to your shell/session PATH
+if you want to launch with just `filewheel`. Nix users should install the wrapped
+flake package instead of using this script.
 
 Use **Conversion engines** in FileWheel to inspect installed tools. Disabled
 formats show the missing engine/codec. Reopen the app after installing codecs.
