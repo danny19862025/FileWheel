@@ -21,6 +21,28 @@ use std::{
     time::Duration,
 };
 
+const FLATPAK_APP_ID: &str = "io.github.danny19862025.FileWheel";
+
+fn in_flatpak() -> bool {
+    std::env::var("FLATPAK_ID").is_ok_and(|id| id == FLATPAK_APP_ID)
+}
+
+fn application_id() -> &'static str {
+    if in_flatpak() {
+        FLATPAK_APP_ID
+    } else {
+        "local.danny.FileWheel"
+    }
+}
+
+fn icon_name() -> &'static str {
+    if in_flatpak() {
+        FLATPAK_APP_ID
+    } else {
+        "filewheel"
+    }
+}
+
 struct Ui {
     app: gtk::Application,
     window: gtk::ApplicationWindow,
@@ -106,7 +128,7 @@ impl Ui {
             .default_width(820)
             .default_height(740)
             .build();
-        window.set_icon_name(Some("filewheel"));
+        window.set_icon_name(Some(icon_name()));
         let header = gtk::HeaderBar::new();
         header.set_show_title_buttons(false);
         let logo = gdk::Texture::from_bytes(&glib::Bytes::from_static(include_bytes!(
@@ -1285,11 +1307,17 @@ fn tray(ui: &Rc<Ui>) {
             "Id" => "filewheel".to_variant(),
             "Title" => "FileWheel".to_variant(),
             "Status" => "Active".to_variant(),
-            "IconName" => "filewheel".to_variant(),
-            "IconThemePath" => format!(
-                "{}/.local/share/icons/hicolor/scalable/apps",
-                std::env::var("HOME").unwrap_or_default()
-            )
+            "IconName" => icon_name().to_variant(),
+            "IconThemePath" => {
+                if in_flatpak() {
+                    "/app/share/icons/hicolor/scalable/apps".to_owned()
+                } else {
+                    format!(
+                        "{}/.local/share/icons/hicolor/scalable/apps",
+                        std::env::var("HOME").unwrap_or_default()
+                    )
+                }
+            }
             .to_variant(),
             "ItemIsMenu" => false.to_variant(),
             "Menu" => glib::variant::ObjectPath::try_from("/")
@@ -1345,7 +1373,7 @@ fn main() {
     let testing = args.iter().any(|a| a == "--smoke-test");
     let background = args.iter().any(|a| a == "--background");
     let app = gtk::Application::builder()
-        .application_id("local.danny.FileWheel")
+        .application_id(application_id())
         .flags(if testing {
             gio::ApplicationFlags::NON_UNIQUE
         } else {

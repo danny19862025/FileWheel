@@ -49,6 +49,10 @@ Wayland restricts observing another application's file drags. Bring the drag ont
 
 **Build and install.** See the [Linux distribution guide](docs/INSTALL.md) for Arch, Ubuntu/Mint/Pop!_OS, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops and other distributions. **NixOS/Nix users:** use the [flake, NixOS and Home Manager guide](docs/NIXOS.md), including `nix run github:danny19862025/FileWheel`.
 
+**Flatpak:** FileWheel is not yet available on Flathub. See the
+[Flatpak preparation notes](docs/FLATPAK.md) for upstream metadata, dependency
+requirements and the remaining packaging and sandbox tests.
+
 Requires current stable Rust, **GTK ≥ 4.10** development files, and **gtk4-layer-shell**. Image conversion requires **ImageMagick 7** (`magick`). On Arch, runtime/conversion packages are `gtk4`, `gtk4-layer-shell`, `imagemagick`, `ffmpeg`, `libreoffice-fresh` (or `libreoffice-still`), `poppler`, `libarchive`, `coreutils`, and `python` (standard-library adapters for EPUB, text clippings and gzip input). Optional `qpdf` enables PDF document metadata removal. Missing engines disable their operations and are shown under **Conversion engines**. At startup FileWheel also queries ImageMagick's read/write format support and FFmpeg's encoders, disabling image formats and explicit media presets whose required codecs are absent. These checks use bounded engine queries; runtime policies, input decoders, and tools using a container's default codec can still affect conversion. Restart FileWheel after changing engines or codecs.
 
 After installing the dependencies for your distribution, clone the repository and run the installer:

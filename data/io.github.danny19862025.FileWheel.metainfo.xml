@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.danny19862025.FileWheel</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>FileWheel</name>
+  <summary>Convert files with a drag-and-drop radial menu</summary>
+  <developer id="io.github.danny19862025">
+    <name>Danny</name>
+  </developer>
+  <description>
+    <p>FileWheel converts files locally using a radial menu. Add files to the main
+    window or drag them onto the floating drop target, then choose a conversion
+    or file tool. Converted files are saved beside their originals.</p>
+    <p>Available operations depend on the conversion engines and codecs included
+    in your installation. FileWheel shows unavailable operations with an explanation.</p>
+    <ul>
+      <li>Convert images, audio, video, documents, spreadsheets and subtitles</li>
+      <li>Export PDF pages as images or extract embedded text</li>
+      <li>Create archives and calculate file checksums</li>
+      <li>Choose light, dark or system appearance and customize accent colors</li>
+    </ul>
+    <p>Document layout and media support depend on the conversion engines.
+    PDF text exports do not preserve the original layout or recognize scanned text.
+    Floating target placement depends on compositor support.</p>
+  </description>
+  <launchable type="desktop-id">io.github.danny19862025.FileWheel.desktop</launchable>
+  <url type="homepage">https://github.com/danny19862025/FileWheel</url>
+  <url type="bugtracker">https://github.com/danny19862025/FileWheel/issues</url>
+  <url type="vcs-browser">https://github.com/danny19862025/FileWheel</url>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Image conversion wheel and a completed conversion</caption>
+      <image>https://raw.githubusercontent.com/danny19862025/FileWheel/e8bd6b40c2a926bb5a71a17b646a62b10a946f37/docs/screenshots/filewheel.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Appearance settings for themes, accent colors and hover feedback</caption>
+      <image>https://raw.githubusercontent.com/danny19862025/FileWheel/e8bd6b40c2a926bb5a71a17b646a62b10a946f37/docs/screenshots/filewheel-appearance.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#fc9259</color>
+    <color type="primary" scheme_preference="dark">#fc9259</color>
+  </branding>
+  <releases>
+    <release version="0.1.0" date="2026-10-25">
+      <description>
+        <p>Initial release of FileWheel for Linux.</p>
+      </description>
+    </release>
+  </releases>
+</component>
