@@ -10,7 +10,7 @@
       pkgsFor = system: import nixpkgs { inherit system; };
       enginesFor = pkgs: with pkgs; [
         imagemagick ffmpeg libreoffice poppler-utils libarchive
-        coreutils python3 qpdf xdg-utils
+        coreutils python3 qpdf xdg-utils curl
       ];
     in {
       packages = forAllSystems (system:
@@ -25,7 +25,7 @@
 
             nativeBuildInputs = with pkgs; [ pkg-config wrapGAppsHook4 ];
             buildInputs = with pkgs; [
-              gtk4 gtk4-layer-shell gsettings-desktop-schemas
+              gtk4 gtk4-layer-shell fontconfig gsettings-desktop-schemas
               hicolor-icon-theme adwaita-icon-theme librsvg
             ];
             nativeCheckInputs = with pkgs; [ python3 bash coreutils ];

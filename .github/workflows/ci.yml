@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    timeout-minutes: 30
+    steps:
+      - name: Install build and conversion engines
+        run: >-
+          pacman -Syu --noconfirm --needed
+          git rust gtk4 gtk4-layer-shell imagemagick ffmpeg
+          libreoffice-fresh poppler libarchive python qpdf ttf-dejavu
+
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+
+      - name: Create an unprivileged test user
+        run: |
+          useradd --create-home filewheel-ci
+          chown -R filewheel-ci:filewheel-ci "$GITHUB_WORKSPACE"
+
+      - name: Check formatting, regressions, and real conversions
+        env:
+          CARGO_TERM_COLOR: always
+        run: |
+          runuser -u filewheel-ci -- env HOME=/home/filewheel-ci bash -euc '
+            cargo fmt --check
+            cargo test --locked
+            python3 tests/formats_test.py
+            cargo build --locked
+            target/debug/filewheel --self-test
+          '

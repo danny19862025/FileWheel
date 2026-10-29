@@ -1,9 +1,12 @@
+mod about;
 mod appearance;
 mod appearance_ui;
+mod branding;
 mod engine;
 mod feedback;
 mod layer;
 mod smoke;
+mod updates;
 mod wheel;
 
 use appearance::{Color, Palette, Preferences};
@@ -46,7 +49,7 @@ fn icon_name() -> &'static str {
 struct Ui {
     app: gtk::Application,
     window: gtk::ApplicationWindow,
-    about: gtk::AboutDialog,
+    about: gtk::Window,
     pad: gtk::Window,
     floating: gtk::Window,
     ring: gtk::DrawingArea,
@@ -129,6 +132,11 @@ impl Ui {
             .default_height(740)
             .build();
         window.set_icon_name(Some(icon_name()));
+        if let Some(map) = window.pango_context().font_map() {
+            if let Err(error) = branding::load_brand_font(&map) {
+                eprintln!("FileWheel wordmark font: {error}");
+            }
+        }
         let header = gtk::HeaderBar::new();
         header.set_show_title_buttons(false);
         let logo = gdk::Texture::from_bytes(&glib::Bytes::from_static(include_bytes!(
@@ -141,6 +149,7 @@ impl Ui {
         brand.append(&brand_logo);
         let brand_name = gtk::Label::new(Some("FileWheel"));
         brand_name.add_css_class("wordmark");
+        brand_name.set_widget_name("filewheel-wordmark");
         brand.append(&brand_name);
         header.set_title_widget(Some(&brand));
         let quit = gtk::Button::with_label("Quit");
@@ -155,48 +164,12 @@ impl Ui {
         let appearance_button = gtk::Button::with_label("Appearance");
         appearance_button.set_tooltip_text(Some("Theme and accent color"));
         header.pack_end(&appearance_button);
-        let about_dialog = gtk::AboutDialog::builder()
-            .application(app)
-            .transient_for(&window)
-            .modal(true)
-            .hide_on_close(true)
-            .title("About FileWheel")
-            .program_name("FileWheel")
-            .version(env!("CARGO_PKG_VERSION"))
-            .comments("Local file conversion, a wheel away.\n\nCreated by Danny")
-            .logo(&logo)
-            .build();
-        about_dialog.connect_close_request(|dialog| {
-            dialog.set_visible(false);
-            glib::Propagation::Stop
-        });
-        let about_header = gtk::HeaderBar::new();
-        about_header.set_show_title_buttons(false);
-        about_header.set_title_widget(Some(&label("About FileWheel", "muted")));
-        let about_close = gtk::Button::with_label("×");
-        about_close.set_tooltip_text(Some("Close About"));
-        about_close.update_property(&[gtk::accessible::Property::Label("Close About")]);
-        let dialog = about_dialog.downgrade();
-        about_close.connect_clicked(move |_| {
-            if let Some(dialog) = dialog.upgrade() {
-                dialog.close();
-            }
-        });
-        about_header.pack_end(&about_close);
-        about_dialog.set_titlebar(Some(&about_header));
-        let keys = gtk::EventControllerKey::new();
-        let dialog = about_dialog.downgrade();
-        keys.connect_key_pressed(move |_, key, _, _| {
-            if key == gdk::Key::Escape {
-                if let Some(dialog) = dialog.upgrade() {
-                    dialog.close();
-                }
-                glib::Propagation::Stop
-            } else {
-                glib::Propagation::Proceed
-            }
-        });
-        about_dialog.add_controller(keys);
+        let about_dialog = about::window(
+            &window,
+            "FileWheel",
+            &logo,
+            "Local file conversion, a wheel away.",
+        );
         let dialog = about_dialog.clone();
         about.connect_clicked(move |_| dialog.present());
         let hide = gtk::Button::with_label("Hide");
@@ -205,7 +178,10 @@ impl Ui {
         window.set_titlebar(Some(&header));
         let root = gtk::Box::new(gtk::Orientation::Vertical, 14);
         root.add_css_class("shell");
-        window.set_child(Some(&root));
+        let overlay = gtk::Overlay::new();
+        overlay.set_child(Some(&root));
+        window.set_child(Some(&overlay));
+        branding::opening_animation(&overlay, &brand_name);
         let eyebrow = label("A LITTLE LESS FILE FRICTION", "eyebrow");
         root.append(&eyebrow);
         let hero = label("Drop. Choose. Done.", "hero");

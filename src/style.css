@@ -4,7 +4,7 @@ button label, button:backdrop label, checkbutton label, checkbutton:backdrop lab
 headerbar { background: @fw_bg; box-shadow: none; border: 0; }
 window.overlay, window.pad { background: transparent; }
 .shell { padding: 12px 24px 22px; }
-.wordmark { color: @fw_text; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+.wordmark { color: @fw_text; font-family: "Ribeye", serif; font-weight: 400; font-size: 24px; }
 .eyebrow { font-size: 10px; letter-spacing: 2px; font-weight: 800; color: @fw_accent_label; }
 .hero { font-size: 32px; font-weight: 800; letter-spacing: -1px; }
 .muted { color: @fw_muted; font-size: 12px; }
@@ -55,3 +55,9 @@ checkbutton check:checked { background: @fw_accent; color: @fw_accent_ink; }
 button.swatch { padding: 7px; border: 2px solid transparent; border-radius: 50%; min-width: 24px; min-height: 24px; }
 button.swatch:checked { border-color: @fw_accent_label; background: @fw_accent_soft; }
 .appearance-preview { padding: 16px; border-radius: 12px; background: @fw_accent_soft; }
+
+.opening-title { color: #f0f7ff; font-family: "Ribeye", serif; font-size: 42px; font-weight: 400; }
+.opening-subtitle { color: #f3b58f; font-size: 16px; letter-spacing: 2px; }
+.about-title { font-family: "Ribeye", serif; font-size: 32px; font-weight: 400; }
+.about-author { font-size: 18px; font-weight: 700; }
+.about-close { font-size: 22px; min-width: 24px; padding: 2px 10px; }

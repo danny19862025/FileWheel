@@ -392,8 +392,57 @@ pub fn ui(ui: &Rc<Ui>) {
     };
     ui.set_paths(vec![source], false);
     ui.window.present();
+    let font = ui
+        .window
+        .pango_context()
+        .load_font(&gtk::pango::FontDescription::from_string("Ribeye 24"))
+        .expect("Bundled font");
+    assert_eq!(
+        font.describe().family().as_deref(),
+        Some("Ribeye"),
+        "Bundled font must render without fallback"
+    );
     let u = ui.clone();
-    glib::timeout_add_local_once(Duration::from_millis(600), move || {
+    glib::timeout_add_local_once(Duration::from_millis(850), move || {
+        if let Some(path) = std::env::var_os("FILEWHEEL_SCREENSHOT") {
+            let snapshot = gtk::Snapshot::new();
+            gtk::WidgetPaintable::new(Some(&u.window)).snapshot(
+                &snapshot,
+                u.window.width() as f64,
+                u.window.height() as f64,
+            );
+            if let (Some(node), Some(renderer)) = (snapshot.to_node(), u.window.renderer()) {
+                renderer
+                    .render_texture(&node, None)
+                    .save_to_png(PathBuf::from(path).with_file_name("filewheel-opening.png"))
+                    .expect("Opening screenshot");
+            }
+        }
+    });
+    let u = ui.clone();
+    glib::timeout_add_local_once(Duration::from_millis(4000), move || {
+        let overlay = u.window.child().and_downcast::<gtk::Overlay>().unwrap();
+        assert!(
+            overlay.child().unwrap().next_sibling().is_none(),
+            "Opening animation must remove itself"
+        );
+        let mut widgets = vec![u.window.titlebar().unwrap()];
+        let title = loop {
+            let widget = widgets.pop().expect("FileWheel wordmark");
+            if widget.widget_name() == "filewheel-wordmark" {
+                break widget.downcast::<gtk::Label>().unwrap();
+            }
+            let mut child = widget.first_child();
+            while let Some(widget) = child {
+                child = widget.next_sibling();
+                widgets.push(widget);
+            }
+        };
+        assert_eq!(
+            title.text(),
+            "FileWheel",
+            "Typewriter must finish without a caret"
+        );
         // Exercise the same GTK signal handler used for compositor-delivered drops.
         // This does not claim to synthesize a physical Wayland drag.
         u.mode_buttons[1].emit_clicked();
@@ -419,7 +468,7 @@ pub fn ui(ui: &Rc<Ui>) {
     let mut owner = Some(work);
     glib::timeout_add_local(Duration::from_millis(200), move || {
         ticks += 1;
-        if ticks < 8 {
+        if ticks < 22 {
             return glib::ControlFlow::Continue;
         }
         if u.busy.get() && ticks < 100 {
@@ -481,7 +530,7 @@ pub fn ui(ui: &Rc<Ui>) {
                     }
                 }
             }
-            assert!(u.about.logo().is_some(), "About must have an embedded logo");
+            assert!(u.about.child().is_some(), "About must have its content");
             u.about.present();
             glib::timeout_add_local_once(Duration::from_millis(400), move || {
                 if let Some(path) = std::env::var_os("FILEWHEEL_SCREENSHOT") {
