@@ -147,10 +147,10 @@ impl CodecSupport {
         text.lines()
             .filter_map(|line| {
                 let columns = line.split_whitespace().collect::<Vec<_>>();
-                let mode = *columns.get(2)?;
-                if mode.len() != 3 || !mode.bytes().all(|b| b"rw-+".contains(&b)) {
-                    return None;
-                }
+                // ImageMagick tables may include a Module column, or omit it.
+                let mode = columns.iter().skip(1).take(2).find(|mode| {
+                    matches!(mode.as_bytes(), [b'r' | b'-', b'w' | b'-', b'+' | b'-'])
+                })?;
                 Some((
                     columns[0].trim_end_matches('*').to_string(),
                     (mode.starts_with('r'), mode.as_bytes()[1] == b'w'),
@@ -1249,6 +1249,29 @@ fn write_job_log(dir: &Path, op: &str, input: &Path, result: &Result<Completed>)
 mod tests {
     use super::*;
     use std::os::unix::fs::PermissionsExt;
+
+    #[test]
+    fn imagemagick_format_tables_support_both_layouts() {
+        for table in [
+            "Format Mode Description\nAVIF rw+ AV1 Image File Format (1.23.1)\nHEIC r-- High Efficiency Image Format\nPNG* rw- Portable Network Graphics\nWRITEONLY -w+ Write-only format\n",
+            "Format Module Mode Description\nAVIF HEIC rw+ AV1 Image File Format (1.23.1)\nHEIC HEIC r-- High Efficiency Image Format\nPNG* PNG rw- Portable Network Graphics\nWRITEONLY TEST -w+ Write-only format\n",
+        ] {
+            let formats = CodecSupport::image_formats(table);
+            assert_eq!(formats.len(), 4);
+            assert_eq!(formats.get("AVIF"), Some(&(true, true)));
+            assert_eq!(formats.get("HEIC"), Some(&(true, false)));
+            assert_eq!(formats.get("PNG"), Some(&(true, true)));
+            assert_eq!(formats.get("WRITEONLY"), Some(&(false, true)));
+        }
+    }
+
+    #[test]
+    fn imagemagick_format_tables_reject_invalid_modes() {
+        let formats = CodecSupport::image_formats(
+            "\nFormat Mode Description\nINVALID rww Bad flags\nINVALID2 rr+ Bad flags\nINVALID3 rw Bad flags\nONLYNAME\n",
+        );
+        assert!(formats.is_empty());
+    }
 
     fn fake_office(work: &Path) -> Tools {
         let program = work.join("office-fixture");
