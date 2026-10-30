@@ -2,9 +2,11 @@
 
 A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
 
+**[Download the Flatpak test release](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#install-the-flatpak-test-release)
+
 ![FileWheel showing the image conversion wheel, file list, and a completed conversion](docs/screenshots/filewheel.png)
 
-After installation, run `"$HOME/.local/bin/filewheel"` from a terminal or open **FileWheel** in your application launcher. If `~/.local/bin` is on your PATH, `filewheel` also works. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
+After a native installation, run `"$HOME/.local/bin/filewheel"` from a terminal or open **FileWheel** in your application launcher. If `~/.local/bin` is on your PATH, `filewheel` also works. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
 
 FileWheel opens with a 1.8-second logo reveal and warm light rings, followed by a typewriter animation of the header name. Click the intro or press Escape to skip. Desktop settings that disable GTK animations skip both effects. The Ribeye font and its OFL license are bundled in `data/fonts` and embedded in the binary.
 
@@ -51,9 +53,45 @@ Wayland restricts observing another application's file drags. Bring the drag ont
 
 **Build and install.** See the [Linux distribution guide](docs/INSTALL.md) for Arch, Ubuntu/Mint/Pop!_OS, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops and other distributions. **NixOS/Nix users:** use the [flake, NixOS and Home Manager guide](docs/NIXOS.md), including `nix run github:danny19862025/FileWheel`.
 
-**Flatpak:** FileWheel is not yet available on Flathub. See the
-[Flatpak preparation notes](docs/FLATPAK.md) for upstream metadata, dependency
-requirements and the remaining packaging and sandbox tests.
+## Install the Flatpak test release
+
+A prebuilt **x86_64 Linux Flatpak** is available from the
+[GitHub test release](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1).
+No compilation is required. This is a pre-release, not a Flathub listing.
+
+Install Flatpak for your distribution first, then download
+`FileWheel-full-test-x86_64.flatpak` and
+`FileWheel-full-test-x86_64.flatpak.sha256` from that release into Downloads.
+
+Verify the download:
+
+```sh
+cd ~/Downloads
+sha256sum -c FileWheel-full-test-x86_64.flatpak.sha256
+```
+
+Continue only if it reports **OK**. Add Flathub for the shared GNOME runtime,
+then install and launch FileWheel:
+
+```sh
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub org.gnome.Platform//51
+flatpak install --user ~/Downloads/FileWheel-full-test-x86_64.flatpak
+flatpak run --user --branch=full-test io.github.danny19862025.FileWheel
+```
+
+The runtime requires an additional download if it is not already installed.
+The package has home-folder access to save outputs beside originals.
+Document-to-PDF, PDF-to-PNG/text and image-to-AVIF conversions have been
+tested by the maintainer on a desktop and laptop; this does not cover every
+input file or desktop environment.
+
+Check the release page manually for newer test builds; the app's stable-release
+checker does not list pre-releases. The [Flatpak preparation notes](docs/FLATPAK.md)
+describe upstream packaging background, not a Flathub submission.
+
+## Build and install natively
+
 
 Requires current stable Rust, **GTK ≥ 4.10** development files, and **gtk4-layer-shell**, and **Pango ≥ 1.56** development files. Image conversion requires **ImageMagick 7** (`magick`). On Arch, runtime/conversion packages are `gtk4`, `gtk4-layer-shell`, `fontconfig`, `imagemagick`, `ffmpeg`, `libreoffice-fresh` (or `libreoffice-still`), `poppler`, `libarchive`, `coreutils`, and `python` (standard-library adapters for EPUB, text clippings and gzip input). Optional `qpdf` enables PDF document metadata removal. Missing engines disable their operations and are shown under **Conversion engines**. At startup FileWheel also queries ImageMagick's read/write format support and FFmpeg's encoders, disabling image formats and explicit media presets whose required codecs are absent. These checks use bounded engine queries; runtime policies, input decoders, and tools using a container's default codec can still affect conversion. Restart FileWheel after changing engines or codecs.
 
