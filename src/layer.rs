@@ -21,7 +21,8 @@ pub fn attach(window: &gtk::Window, right_margin: i32) -> bool {
         let ptr = window.as_ptr().cast();
         gtk_layer_init_for_window(ptr);
         gtk_layer_set_namespace(ptr, c"filewheel".as_ptr());
-        gtk_layer_set_layer(ptr, 3);
+        // TOP stays above normal windows but below fullscreen video and games.
+        gtk_layer_set_layer(ptr, 2);
         gtk_layer_set_anchor(ptr, 1, 1);
         gtk_layer_set_margin(ptr, 1, right_margin);
         gtk_layer_set_keyboard_mode(ptr, 2);
