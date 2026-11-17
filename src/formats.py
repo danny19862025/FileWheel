@@ -119,7 +119,14 @@ elif action == 'gzip':
     import shutil
     import tarfile
     if not tarfile.is_tarfile(source):
+        # Refuse gzip bombs before they fill the disk beside the user's files.
+        limit = max(1 << 30, 100 * source.stat().st_size)
+        written = 0
         with gzip.open(source, 'rb') as compressed, open(dst, 'wb') as output:
-            shutil.copyfileobj(compressed, output)
+            while chunk := compressed.read(1 << 20):
+                written += len(chunk)
+                if written > limit:
+                    raise ValueError('Decompressed gzip data is unexpectedly large')
+                output.write(chunk)
 else:
     Path(dst).write_text(epub(source) if action == 'epub' else clipping(source), encoding='utf-8')

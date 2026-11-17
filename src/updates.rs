@@ -7,10 +7,10 @@ fn version(value: &str) -> Result<[u64; 3], String> {
         .split('.')
         .map(str::parse::<u64>)
         .collect::<Result<Vec<_>, _>>()
-        .map_err(|_| "Invalid release version")?;
+        .map_err(|_| format!("Latest release tag {value:?} is not a version number"))?;
     parts
         .try_into()
-        .map_err(|_| "Invalid release version".into())
+        .map_err(|_| format!("Latest release tag {value:?} is not a version number"))
 }
 
 fn release_summary(json: &str, current: &str) -> Result<String, String> {
@@ -57,7 +57,6 @@ pub fn add_controls(body: &gtk::Box) {
             let result = (|| {
                 let out = std::process::Command::new("curl")
                     .args([
-                        "--fail",
                         "--silent",
                         "--show-error",
                         "--max-time",
@@ -70,19 +69,30 @@ pub fn add_controls(body: &gtk::Box) {
                         "Accept: application/vnd.github+json",
                         "-H",
                         "User-Agent: FileWheel",
+                        "--write-out",
+                        "\n%{http_code}",
                         "https://api.github.com/repos/danny19862025/FileWheel/releases/latest",
                     ])
                     .output()
                     .map_err(|e| {
                         format!("Update check failed: {e}. Open Releases to check manually.")
                     })?;
+                let unavailable = || "Update check unavailable. Try again or open Releases.".to_string();
                 if !out.status.success() {
-                    return Err("Update check unavailable. Try again or open Releases.".to_string());
+                    return Err(unavailable());
                 }
-                release_summary(
-                    &String::from_utf8_lossy(&out.stdout),
-                    env!("CARGO_PKG_VERSION"),
-                )
+                let text = String::from_utf8_lossy(&out.stdout);
+                let (body, code) = text.rsplit_once('\n').ok_or_else(unavailable)?;
+                match code.trim() {
+                    "200" => release_summary(body, env!("CARGO_PKG_VERSION")),
+                    // GitHub's "latest" endpoint ignores pre-releases and
+                    // returns 404 until a stable release exists.
+                    "404" => Err(format!(
+                        "No stable release has been published yet. Installed: {}. Open Releases for test builds.",
+                        env!("CARGO_PKG_VERSION")
+                    )),
+                    _ => Err(unavailable()),
+                }
             })();
             let _ = send.send(result);
         });

@@ -50,6 +50,22 @@ class ImportTests(unittest.TestCase):
             self.assertIn('First &amp; café', text)
             self.assertLess(text.index('First'), text.index('Second'))
 
+    def test_gzip_decompresses_and_rejects_bombs(self):
+        import gzip
+        with tempfile.TemporaryDirectory() as tmp:
+            small = Path(tmp) / 'notes.txt.gz'
+            small.write_bytes(gzip.compress(b'hello'))
+            self.assertEqual(self.convert(small, 'gzip').read_bytes(), b'hello')
+            bomb = Path(tmp) / 'bomb.gz'
+            with gzip.open(bomb, 'wb', compresslevel=9) as out:
+                chunk = b'A' * (1 << 24)
+                for _ in range(65):  # 1040 MiB of one byte, ~1 MiB compressed
+                    out.write(chunk)
+            target = Path(tmp) / 'bomb.out'
+            result = subprocess.run([sys.executable, str(SCRIPT), 'gzip', str(bomb), str(target)], capture_output=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b'unexpectedly large', result.stderr)
+
 
 if __name__ == '__main__':
     unittest.main()

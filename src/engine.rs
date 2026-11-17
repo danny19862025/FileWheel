@@ -147,10 +147,10 @@ impl CodecSupport {
         text.lines()
             .filter_map(|line| {
                 let columns = line.split_whitespace().collect::<Vec<_>>();
-                let mode = *columns.get(2)?;
-                if mode.len() != 3 || !mode.bytes().all(|b| b"rw-+".contains(&b)) {
-                    return None;
-                }
+                let is_mode = |m: &&&str| m.len() == 3 && m.bytes().all(|b| b"rw-+".contains(&b));
+                // ImageMagick ≤ 7.1.1 prints "Format Module Mode …"; newer
+                // releases drop the Module column: "Format Mode …".
+                let mode = *columns.get(1..3)?.iter().find(is_mode)?;
                 Some((
                     columns[0].trim_end_matches('*').to_string(),
                     (mode.starts_with('r'), mode.as_bytes()[1] == b'w'),
@@ -172,6 +172,10 @@ impl CodecSupport {
 }
 
 impl Tools {
+    /// No engines yet; used while `discover` runs in the background.
+    pub fn empty() -> Self {
+        Self(BTreeMap::new(), CodecSupport::default())
+    }
     pub fn discover() -> Self {
         let mut found = BTreeMap::new();
         for name in [
@@ -373,6 +377,64 @@ fn find(name: &str) -> Option<PathBuf> {
         })
 }
 
+fn cache_dir() -> Option<PathBuf> {
+    std::env::var_os("XDG_CACHE_HOME")
+        .map(PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache")))
+        .map(|p| p.join("filewheel"))
+}
+
+/// One LibreOffice profile per FileWheel process, reused across jobs.
+/// Creating a profile costs seconds per conversion and would otherwise be
+/// written into a hidden folder next to the user's files.
+fn office_profile() -> Option<PathBuf> {
+    let dir = cache_dir()?.join(format!("office-profile-{}", std::process::id()));
+    fs::create_dir_all(&dir).ok()?;
+    Some(dir)
+}
+
+fn pid_alive(pid: &str) -> bool {
+    pid.parse::<u32>().is_ok() && Path::new("/proc").join(pid).exists()
+}
+
+/// Remove temporary folders and LibreOffice profiles left behind by
+/// FileWheel processes that crashed or were killed.
+pub fn clean_stale() {
+    if let Ok(entries) = fs::read_dir(std::env::temp_dir()) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let Some(rest) = name.to_str().and_then(|n| n.strip_prefix(".filewheel-")) else {
+                continue;
+            };
+            if let Some((pid, _)) = rest.split_once('-') {
+                if !pid_alive(pid) {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+    }
+    if let Some(Ok(entries)) = cache_dir().map(fs::read_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            if let Some(pid) = name
+                .to_str()
+                .and_then(|n| n.strip_prefix("office-profile-"))
+            {
+                if !pid_alive(pid) {
+                    let _ = fs::remove_dir_all(entry.path());
+                }
+            }
+        }
+    }
+}
+
+pub fn remove_office_profile() {
+    if let Some(dir) = cache_dir() {
+        let _ = fs::remove_dir_all(dir.join(format!("office-profile-{}", std::process::id())));
+    }
+}
+
 pub struct WorkDir {
     pub path: PathBuf,
 }
@@ -415,6 +477,20 @@ impl Output {
             input.file_stem()
         }
         .unwrap_or(OsStr::new("file"));
+        // "backup.tar.gz" should become "backup.zip", not "backup.tar.zip".
+        let stem = match stem.to_str() {
+            Some(name)
+                if !input.is_dir()
+                    && input
+                        .extension()
+                        .is_some_and(|e| e.eq_ignore_ascii_case("gz"))
+                    && name.len() > 4
+                    && name[name.len() - 4..].eq_ignore_ascii_case(".tar") =>
+            {
+                OsStr::new(&name[..name.len() - 4])
+            }
+            _ => stem,
+        };
         for number in 1..100_000 {
             let mut name = stem.to_os_string();
             name.push(suffix);
@@ -658,11 +734,14 @@ pub fn run(
         } else {
             "document.txt"
         });
-        let args = vec![
-            "-layout".into(),
-            input.as_os_str().into(),
-            text.as_os_str().into(),
-        ];
+        // -layout pads columns with spaces: useful for plain text and one row
+        // per line, but it turns into code blocks in Markdown and messy DOCX.
+        let mut args = Vec::new();
+        if matches!(op, "TXT" | "XLSX") {
+            args.push(OsString::from("-layout"));
+        }
+        args.push(input.as_os_str().into());
+        args.push(text.as_os_str().into());
         process(tools.get("pdftotext")?, &args, &work.path, cancel)?;
         if fs::read_to_string(&text)
             .map_err(|e| e.to_string())?
@@ -734,9 +813,18 @@ pub fn run(
         ];
         process(tools.get("qpdf")?, &args, &work.path, cancel)?;
     } else if kind == Kind::Image {
-        let mut args = vec![input.as_os_str().into()];
+        // Multi-frame inputs (multi-page TIFF, animated WebP, HEIC/AVIF
+        // sequences) would otherwise produce result-0.png, result-1.png, …
+        // Only PDF export keeps every frame.
+        let mut source = input.as_os_str().to_os_string();
+        if !(mode == Mode::Convert && op == "PDF") {
+            source.push("[0]");
+        }
+        let mut args = vec![source];
+        // Apply EXIF orientation first so rotate/strip/resize act on what the
+        // user sees, and stripping metadata cannot leave photos sideways.
+        args.extend(strings(&["-auto-orient"]));
         if mode == Mode::Convert {
-            args.extend(strings(&["-auto-orient"]));
             if op == "WEBP" {
                 args.extend(strings(&["-quality", "85"]));
             }
@@ -805,7 +893,8 @@ fn media_preset(kind: Kind, mode: Mode, op: &str) -> Result<Vec<&'static str>> {
                 "+faststart",
             ],
             "MOV" => vec![
-                "-c:v", "libx264", "-crf", "23", "-preset", "veryfast", "-c:a", "aac",
+                "-c:v", "libx264", "-crf", "23", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+                "-c:a", "aac",
             ],
             "GIF" => vec![
                 "-vf",
@@ -848,7 +937,27 @@ fn media_preset(kind: Kind, mode: Mode, op: &str) -> Result<Vec<&'static str>> {
                 "-c:a", "aac", "-b:a", "128k",
             ],
             "Compress" => vec!["-vn", "-c:a", "libmp3lame", "-b:a", "96k"],
-            "Strip metadata" => vec!["-map", "0", "-map_metadata", "-1", "-c", "copy"],
+            // Audio cover art is an attached video stream; drop it with the tags.
+            "Strip metadata" if kind == Kind::Audio => vec![
+                "-map",
+                "0:a",
+                "-map_metadata",
+                "-1",
+                "-map_chapters",
+                "-1",
+                "-c",
+                "copy",
+            ],
+            "Strip metadata" => vec![
+                "-map",
+                "0",
+                "-map_metadata",
+                "-1",
+                "-map_chapters",
+                "-1",
+                "-c",
+                "copy",
+            ],
             "Mute" => vec!["-an", "-c:v", "copy"],
             "First 10s" => vec!["-t", "10", "-c", "copy"],
             "Grab frame" => vec!["-frames:v", "1", "-c:v", "png"],
@@ -1002,7 +1111,9 @@ fn office_stage(
     };
     let out_dir = work.join("converted");
     fs::create_dir_all(&out_dir).map_err(|e| e.to_string())?;
-    let profile = gtk::gio::File::for_path(work.join("office-profile")).uri();
+    let profile =
+        gtk::gio::File::for_path(office_profile().unwrap_or_else(|| work.join("office-profile")))
+            .uri();
     let mut args = vec![
         format!("-env:UserInstallation={profile}").into(),
         "--headless".into(),
@@ -1023,7 +1134,10 @@ fn office_stage(
         };
         // Import text cells literally; do not turn untrusted CSV text into formulas.
         args.push(
-            format!("--infilter=Text - txt - csv (StarCalc):{delimiter},34,76,1,,0,false,false")
+            // Token 13 (evaluate formulas) is set to false explicitly.
+            format!(
+                "--infilter=Text - txt - csv (StarCalc):{delimiter},34,76,1,,0,false,false,false,false,false,0,false"
+            )
                 .into(),
         );
     } else if source
@@ -1277,7 +1391,7 @@ cp -- "$source" "$outdir/${name%.*}.$extension"
         let work = WorkDir::new(&std::env::temp_dir()).unwrap();
         let magick = work.path.join("magick");
         let ffmpeg = work.path.join("ffmpeg");
-        fs::write(&magick, "#!/bin/sh\n[ \"$*\" = '-list format' ] || exit 1\ncat <<'FORMATS'\nFormat Module Mode Description\nPNG* PNG rw+ PNG\nHEIC HEIC r-- HEIC\nAVIF HEIC -w+ AVIF\nFORMATS\n").unwrap();
+        fs::write(&magick, "#!/bin/sh\n[ \"$*\" = '-list format' ] || exit 1\ncat <<'FORMATS'\nFormat Module Mode Description\nPNG* PNG rw+ PNG\nHEIC HEIC r-- HEIC\nAVIF HEIC -w+ AVIF\nWEBP* rw+ New layout without a module column\nFORMATS\n").unwrap();
         fs::write(&ffmpeg, "#!/bin/sh\n[ \"$*\" = '-hide_banner -encoders' ] || exit 1\nprintf ' V..... = Video\\n V....D libx264 H264\\n A....D libmp3lame MP3\\n'\n").unwrap();
         for path in [&magick, &ffmpeg] {
             fs::set_permissions(path, fs::Permissions::from_mode(0o700)).unwrap();
@@ -1302,6 +1416,7 @@ cp -- "$source" "$outdir/${name%.*}.$extension"
                 .unwrap()
                 .contains("cannot read AVIF")
         );
+        assert_eq!(tools.unavailable(Kind::Image, Mode::Convert, "WEBP"), None);
         assert_eq!(tools.unavailable(Kind::Audio, Mode::Convert, "MP3"), None);
         assert_eq!(
             tools.unavailable(Kind::Video, Mode::Convert, "MP4"),
@@ -1561,6 +1676,157 @@ cp -- "$source" "$outdir/${name%.*}.$extension"
         assert_eq!(fs::read(output).unwrap(), b"converted");
         assert!(!work.path.join("photo 3.png").exists());
     }
+    #[test]
+    fn tar_gz_outputs_drop_the_inner_tar_extension() {
+        let work = WorkDir::new(&std::env::temp_dir()).unwrap();
+        let source = work.path.join("backup.TAR.gz");
+        fs::write(&source, b"x").unwrap();
+        let zip = Output::reserve(&source, "", "zip", false).unwrap();
+        assert_eq!(zip.path.file_name().unwrap(), "backup.zip");
+        let gz = Output::reserve(&source, "", "tar.gz", false).unwrap();
+        assert_eq!(gz.path.file_name().unwrap(), "backup.tar.gz");
+        // Only gzip input loses ".tar": "movie.tar.mp4" keeps its name.
+        let other = work.path.join("movie.tar.mp4");
+        fs::write(&other, b"x").unwrap();
+        let out = Output::reserve(&other, "", "mkv", false).unwrap();
+        assert_eq!(out.path.file_name().unwrap(), "movie.tar.mkv");
+    }
+    fn real(names: &[&str]) -> Option<Tools> {
+        let tools = Tools::discover();
+        names.iter().all(|n| tools.has(n)).then_some(tools)
+    }
+    fn sh(program: &Path, args: &[&str]) -> String {
+        let out = Command::new(program).args(args).output().unwrap();
+        assert!(
+            out.status.success(),
+            "{}",
+            String::from_utf8_lossy(&out.stderr)
+        );
+        String::from_utf8_lossy(&out.stdout).into()
+    }
+
+    #[test]
+    fn multi_frame_images_convert_and_strip_keeps_orientation() {
+        let Some(tools) = real(&["magick"]) else {
+            return eprintln!("skipped: ImageMagick not installed");
+        };
+        let magick = tools.get("magick").unwrap().to_path_buf();
+        let work = WorkDir::new(&std::env::temp_dir()).unwrap();
+        let p = |name: &str| work.path.join(name).to_string_lossy().into_owned();
+        let tiff = p("pages.tiff");
+        sh(&magick, &["-size", "40x20", "xc:red", "xc:blue", &tiff]);
+        let cancel = AtomicBool::new(false);
+        let png = run(Path::new(&tiff), Mode::Convert, "PNG", &tools, &cancel).unwrap();
+        assert_eq!(png.output.unwrap().file_name().unwrap(), "pages.png");
+        let gray = run(Path::new(&tiff), Mode::Tools, "Grayscale", &tools, &cancel).unwrap();
+        assert!(gray.output.unwrap().is_file());
+
+        // A 40x20 image tagged "rotate 90°" displays as 20x40; stripping its
+        // metadata must bake the rotation in rather than drop it.
+        let tif = p("phone.tif");
+        sh(
+            &magick,
+            &["-size", "40x20", "xc:green", "-orient", "RightTop", &tif],
+        );
+        let clean = run(
+            Path::new(&tif),
+            Mode::Tools,
+            "Strip metadata",
+            &tools,
+            &cancel,
+        )
+        .unwrap()
+        .output
+        .unwrap();
+        let size = sh(
+            &magick,
+            &[
+                "identify",
+                "-format",
+                "%wx%h %[orientation]",
+                &clean.to_string_lossy(),
+            ],
+        );
+        assert!(size.starts_with("20x40"), "{size}");
+    }
+
+    #[test]
+    fn audio_strip_metadata_drops_tags_and_cover_art() {
+        let Some(tools) = real(&["ffmpeg"]) else {
+            return eprintln!("skipped: FFmpeg not installed");
+        };
+        if tools
+            .unavailable(Kind::Audio, Mode::Tools, "Strip metadata")
+            .is_some()
+        {
+            return;
+        }
+        let ffmpeg = tools.get("ffmpeg").unwrap().to_path_buf();
+        let work = WorkDir::new(&std::env::temp_dir()).unwrap();
+        let p = |name: &str| work.path.join(name).to_string_lossy().into_owned();
+        let (cover, song) = (p("cover.png"), p("song.flac"));
+        sh(
+            &ffmpeg,
+            &[
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "color=c=red:s=16x16",
+                "-frames:v",
+                "1",
+                &cover,
+            ],
+        );
+        sh(
+            &ffmpeg,
+            &[
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=duration=1",
+                "-i",
+                &cover,
+                "-map",
+                "0",
+                "-map",
+                "1",
+                "-c:a",
+                "flac",
+                "-c:v",
+                "png",
+                "-disposition:v",
+                "attached_pic",
+                "-metadata",
+                "title=Secret title",
+                &song,
+            ],
+        );
+        let cancel = AtomicBool::new(false);
+        let clean = run(
+            Path::new(&song),
+            Mode::Tools,
+            "Strip metadata",
+            &tools,
+            &cancel,
+        )
+        .unwrap()
+        .output
+        .unwrap();
+        let probe = Command::new(&ffmpeg)
+            .args(["-hide_banner", "-i"])
+            .arg(&clean)
+            .output()
+            .unwrap();
+        let info = String::from_utf8_lossy(&probe.stderr);
+        assert!(info.contains("Audio:"), "{info}");
+        assert!(!info.contains("Video:"), "cover art survived: {info}");
+        assert!(!info.contains("Secret title"), "tags survived: {info}");
+    }
+
     #[test]
     fn cancelled_process_cannot_create_a_result() {
         let work = WorkDir::new(&std::env::temp_dir()).unwrap();
