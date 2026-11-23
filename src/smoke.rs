@@ -39,14 +39,7 @@ fn image(dir: &Path) -> Result<PathBuf, String> {
 
 pub fn backend() -> Result<(), String> {
     let tools = Tools::discover();
-    for name in [
-        "magick",
-        "ffmpeg",
-        "pdftoppm",
-        "libreoffice",
-        "bsdtar",
-        "sha256sum",
-    ] {
+    for name in ["magick", "ffmpeg", "pdftoppm", "libreoffice", "bsdtar"] {
         tools.get(name)?;
     }
     let work = WorkDir::new(&std::env::temp_dir())?;
@@ -216,7 +209,8 @@ pub fn backend() -> Result<(), String> {
         return Err("Document text was lost".into());
     }
 
-    // Use real LibreOffice/coreutils on a readable source in a non-writable folder.
+    // Use real LibreOffice on a readable source in a non-writable folder.
+    #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let dir = work.path.join("read-only");

@@ -3,7 +3,9 @@ use crate::{
     appearance::{ACCENTS, Color, Palette, Preferences, Theme},
     label,
 };
-use gtk::{gdk, gio, glib, prelude::*};
+#[cfg(not(windows))]
+use gtk::gio;
+use gtk::{gdk, glib, prelude::*};
 use std::rc::Rc;
 
 impl Ui {
@@ -47,6 +49,23 @@ impl Ui {
             self.update_theme();
         }
     }
+    /// Windows has no settings portal: poll the "app mode" registry value.
+    #[cfg(windows)]
+    pub(crate) fn watch_system_theme(self: &Rc<Self>) {
+        let weak = Rc::downgrade(self);
+        glib::timeout_add_seconds_local(2, move || {
+            let Some(ui) = weak.upgrade() else {
+                return glib::ControlFlow::Break;
+            };
+            if let Some(dark) = crate::win32::system_dark() {
+                if dark != ui.system_dark.get() {
+                    ui.set_system_scheme(if dark { 1 } else { 2 });
+                }
+            }
+            glib::ControlFlow::Continue
+        });
+    }
+    #[cfg(not(windows))]
     pub(crate) fn watch_system_theme(self: &Rc<Self>) {
         let weak = Rc::downgrade(self);
         gio::bus_get(

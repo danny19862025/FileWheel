@@ -1,3 +1,6 @@
+// Release builds on Windows are GUI programs: no console window behind them.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod about;
 mod appearance;
 mod appearance_ui;
@@ -5,9 +8,12 @@ mod branding;
 mod engine;
 mod feedback;
 mod layer;
+mod platform;
 mod smoke;
 mod updates;
 mod wheel;
+#[cfg(windows)]
+mod win32;
 
 use appearance::{Color, Palette, Preferences};
 use engine::{Kind, Mode, Tools};
@@ -70,6 +76,7 @@ struct Ui {
     appearance_file: RefCell<Option<PathBuf>>,
     appearance_dialog: RefCell<Option<AppearanceDialog>>,
     css: gtk::CssProvider,
+    #[cfg_attr(windows, allow(dead_code))] // The portal watch is Linux-only.
     theme_subscription: RefCell<Option<gio::SignalSubscription>>,
     hover_sound: feedback::HoverSound,
     paths: RefCell<Vec<PathBuf>>,
@@ -121,10 +128,16 @@ impl Ui {
             .as_deref()
             .map(Preferences::load)
             .unwrap_or_default();
-        let system_dark = gtk::Settings::default().is_some_and(|s| {
-            s.is_gtk_application_prefer_dark_theme()
-                || s.gtk_theme_name()
-                    .is_some_and(|name| name.to_ascii_lowercase().contains("dark"))
+        #[cfg(windows)]
+        let windows_dark = win32::system_dark();
+        #[cfg(not(windows))]
+        let windows_dark = None;
+        let system_dark = windows_dark.unwrap_or_else(|| {
+            gtk::Settings::default().is_some_and(|s| {
+                s.is_gtk_application_prefer_dark_theme()
+                    || s.gtk_theme_name()
+                        .is_some_and(|name| name.to_ascii_lowercase().contains("dark"))
+            })
         });
         let css = gtk::CssProvider::new();
         css.load_from_data(&Palette::new(appearance, system_dark).css());
@@ -1138,6 +1151,16 @@ impl Ui {
         if paths.is_empty() {
             return;
         }
+        #[cfg(windows)]
+        {
+            // Explorer can select one item from the command line.
+            win32::reveal(&paths[0]);
+        }
+        #[cfg(not(windows))]
+        self.reveal_with_file_manager(paths);
+    }
+    #[cfg(not(windows))]
+    fn reveal_with_file_manager(&self, paths: &[PathBuf]) {
         let uris = paths
             .iter()
             .map(|p| gio::File::for_path(p).uri().to_string())
@@ -1175,6 +1198,11 @@ impl Ui {
                 let picture = gtk::Picture::for_filename(path);
                 picture.set_can_shrink(true);
                 window.set_child(Some(&picture));
+            }
+            // The Windows build ships without GStreamer: use the default player.
+            Kind::Video | Kind::Audio if cfg!(windows) => {
+                open(path);
+                return;
             }
             Kind::Video | Kind::Audio => {
                 let video = gtk::Video::for_filename(Some(path));
@@ -1304,17 +1332,23 @@ impl Ui {
             "python3",
             "qpdf",
             "bsdtar",
-            "sha256sum",
         ] {
             if !tools.has(name) {
-                lines.push(format!("— {name}  ·  not installed"));
+                match engine::winget_id(name).filter(|_| cfg!(windows)) {
+                    Some(id) => lines.push(format!(
+                        "— {name}  ·  not installed  ·  winget install -e --id {id}"
+                    )),
+                    None => lines.push(format!("— {name}  ·  not installed")),
+                }
             }
         }
         if self.probing.get() {
             lines.push("Still checking installed engines…".into());
         }
         lines.push(
-            if self.layer_supported {
+            if cfg!(windows) {
+                "✓ Always-on-top floating target"
+            } else if self.layer_supported {
                 "✓ Wayland floating target supported"
             } else {
                 "Floating target uses a regular window on this compositor"
@@ -1360,6 +1394,23 @@ fn human_size(size: u64) -> String {
     }
 }
 
+#[cfg(windows)]
+fn tray(ui: &Rc<Ui>) {
+    let weak = Rc::downgrade(ui);
+    let installed = win32::install_tray(include_bytes!("../data/filewheel.png"), move |action| {
+        let Some(u) = weak.upgrade() else {
+            return;
+        };
+        match action {
+            win32::TrayAction::Open => u.window.present(),
+            win32::TrayAction::ToggleTarget => u.pad.set_visible(!u.pad.is_visible()),
+            win32::TrayAction::Quit => u.quit(),
+        }
+    });
+    ui.tray_registered.set(installed);
+}
+
+#[cfg(not(windows))]
 fn tray(ui: &Rc<Ui>) {
     let Ok(bus) = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE) else {
         return;
@@ -1490,6 +1541,8 @@ fn main() {
             ui.hover_sound.stop();
         }
         engine::remove_office_profile();
+        #[cfg(windows)]
+        win32::remove_tray();
     });
     let mut argv = vec![args[0].clone()];
     argv.extend(

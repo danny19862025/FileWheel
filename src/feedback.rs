@@ -1,6 +1,5 @@
 use std::{
     cell::{Cell, RefCell},
-    ffi::{CString, c_int, c_void},
     sync::mpsc::{self, SyncSender},
     time::{Duration, Instant},
 };
@@ -69,105 +68,125 @@ impl Drop for HoverSound {
     }
 }
 
-type Create = unsafe extern "C" fn(*mut *mut c_void) -> c_int;
-type Open = unsafe extern "C" fn(*mut c_void) -> c_int;
-type Destroy = unsafe extern "C" fn(*mut c_void) -> c_int;
-type Play = unsafe extern "C" fn(*mut c_void, u32, ...) -> c_int;
+#[cfg(unix)]
+mod unix_sound {
+    use std::ffi::{CString, c_int, c_void};
 
-struct Library(*mut c_void);
-impl Drop for Library {
-    fn drop(&mut self) {
-        unsafe {
-            libc::dlclose(self.0);
+    type Create = unsafe extern "C" fn(*mut *mut c_void) -> c_int;
+    type Open = unsafe extern "C" fn(*mut c_void) -> c_int;
+    type Destroy = unsafe extern "C" fn(*mut c_void) -> c_int;
+    type Play = unsafe extern "C" fn(*mut c_void, u32, ...) -> c_int;
+
+    struct Library(*mut c_void);
+    impl Drop for Library {
+        fn drop(&mut self) {
+            unsafe {
+                libc::dlclose(self.0);
+            }
+        }
+    }
+
+    pub(super) struct Sound {
+        context: *mut c_void,
+        play: Play,
+        destroy: Destroy,
+        file: CString,
+        _work: crate::engine::WorkDir,
+        _library: Library,
+    }
+    impl Sound {
+        pub(super) fn open() -> Result<Self, String> {
+            // libcanberra is optional. Keep its handle alive until after the context
+            // is destroyed, and use exactly the C ABI declared in canberra.h.
+            unsafe {
+                let handle = libc::dlopen(
+                    c"libcanberra.so.0".as_ptr(),
+                    libc::RTLD_NOW | libc::RTLD_LOCAL,
+                );
+                if handle.is_null() {
+                    return Err("Install libcanberra to enable hover sounds.".into());
+                }
+                let library = Library(handle);
+                let symbol = |name: &std::ffi::CStr| -> Result<*mut c_void, String> {
+                    let pointer = libc::dlsym(handle, name.as_ptr());
+                    if pointer.is_null() {
+                        Err("The installed libcanberra is incompatible.".into())
+                    } else {
+                        Ok(pointer)
+                    }
+                };
+                let create: Create = std::mem::transmute(symbol(c"ca_context_create")?);
+                let open: Open = std::mem::transmute(symbol(c"ca_context_open")?);
+                let destroy: Destroy = std::mem::transmute(symbol(c"ca_context_destroy")?);
+                let play: Play = std::mem::transmute(symbol(c"ca_context_play")?);
+                let work = crate::engine::WorkDir::new(&std::env::temp_dir())?;
+                let path = work.path.join("hover.wav");
+                std::fs::write(&path, include_bytes!("../data/hover.wav"))
+                    .map_err(|e| e.to_string())?;
+                use std::os::unix::ffi::OsStrExt;
+                let file = CString::new(path.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
+                let mut context = std::ptr::null_mut();
+                if create(&mut context) < 0 {
+                    return Err("Could not create the desktop sound context.".into());
+                }
+                let sound = Self {
+                    context,
+                    play,
+                    destroy,
+                    file,
+                    _work: work,
+                    _library: library,
+                };
+                if open(context) < 0 {
+                    return Err("No desktop event-sound backend is available.".into());
+                }
+                Ok(sound)
+            }
+        }
+        pub(super) fn play(&self) -> Result<(), String> {
+            let result = unsafe {
+                (self.play)(
+                    self.context,
+                    1,
+                    c"media.filename".as_ptr(),
+                    self.file.as_ptr(),
+                    c"media.name".as_ptr(),
+                    c"FileWheel hover".as_ptr(),
+                    c"media.role".as_ptr(),
+                    c"event".as_ptr(),
+                    c"canberra.cache-control".as_ptr(),
+                    c"permanent".as_ptr(),
+                    std::ptr::null::<std::ffi::c_char>(),
+                )
+            };
+            if result < 0 {
+                Err(format!("Desktop sound playback failed ({result})."))
+            } else {
+                Ok(())
+            }
+        }
+    }
+    impl Drop for Sound {
+        fn drop(&mut self) {
+            unsafe {
+                (self.destroy)(self.context);
+            }
         }
     }
 }
+#[cfg(unix)]
+use unix_sound::Sound;
 
-struct Sound {
-    context: *mut c_void,
-    play: Play,
-    destroy: Destroy,
-    file: CString,
-    _work: crate::engine::WorkDir,
-    _library: Library,
-}
+/// Windows plays the embedded WAV from memory; no file or library needed.
+#[cfg(windows)]
+struct Sound;
+#[cfg(windows)]
 impl Sound {
     fn open() -> Result<Self, String> {
-        // libcanberra is optional. Keep its handle alive until after the context
-        // is destroyed, and use exactly the C ABI declared in canberra.h.
-        unsafe {
-            let handle = libc::dlopen(
-                c"libcanberra.so.0".as_ptr(),
-                libc::RTLD_NOW | libc::RTLD_LOCAL,
-            );
-            if handle.is_null() {
-                return Err("Install libcanberra to enable hover sounds.".into());
-            }
-            let library = Library(handle);
-            let symbol = |name: &std::ffi::CStr| -> Result<*mut c_void, String> {
-                let pointer = libc::dlsym(handle, name.as_ptr());
-                if pointer.is_null() {
-                    Err("The installed libcanberra is incompatible.".into())
-                } else {
-                    Ok(pointer)
-                }
-            };
-            let create: Create = std::mem::transmute(symbol(c"ca_context_create")?);
-            let open: Open = std::mem::transmute(symbol(c"ca_context_open")?);
-            let destroy: Destroy = std::mem::transmute(symbol(c"ca_context_destroy")?);
-            let play: Play = std::mem::transmute(symbol(c"ca_context_play")?);
-            let work = crate::engine::WorkDir::new(&std::env::temp_dir())?;
-            let path = work.path.join("hover.wav");
-            std::fs::write(&path, include_bytes!("../data/hover.wav"))
-                .map_err(|e| e.to_string())?;
-            use std::os::unix::ffi::OsStrExt;
-            let file = CString::new(path.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
-            let mut context = std::ptr::null_mut();
-            if create(&mut context) < 0 {
-                return Err("Could not create the desktop sound context.".into());
-            }
-            let sound = Self {
-                context,
-                play,
-                destroy,
-                file,
-                _work: work,
-                _library: library,
-            };
-            if open(context) < 0 {
-                return Err("No desktop event-sound backend is available.".into());
-            }
-            Ok(sound)
-        }
+        Ok(Self)
     }
     fn play(&self) -> Result<(), String> {
-        let result = unsafe {
-            (self.play)(
-                self.context,
-                1,
-                c"media.filename".as_ptr(),
-                self.file.as_ptr(),
-                c"media.name".as_ptr(),
-                c"FileWheel hover".as_ptr(),
-                c"media.role".as_ptr(),
-                c"event".as_ptr(),
-                c"canberra.cache-control".as_ptr(),
-                c"permanent".as_ptr(),
-                std::ptr::null::<std::ffi::c_char>(),
-            )
-        };
-        if result < 0 {
-            Err(format!("Desktop sound playback failed ({result})."))
-        } else {
-            Ok(())
-        }
-    }
-}
-impl Drop for Sound {
-    fn drop(&mut self) {
-        unsafe {
-            (self.destroy)(self.context);
-        }
+        crate::win32::play_sound(include_bytes!("../data/hover.wav"))
     }
 }
 

@@ -1,6 +1,6 @@
-# FileWheel for Linux
+# FileWheel for Linux and Windows
 
-A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
+A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. A [Windows build](docs/WINDOWS.md) shares the same code, with an always-on-top drop target and a tray icon. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
 
 **[Download the Flatpak test release](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#install-the-flatpak-test-release)
 
@@ -51,7 +51,7 @@ Actions include **Copy path**, **Reveal**, **Open**, **Preview**, and **Trash**.
 
 Wayland restricts observing another application's file drags. Bring the drag onto FileWheel's visible target to open the wheel. This build does not globally intercept Shift-drag anywhere on the desktop. On compositors without layer-shell support, the target uses a regular GTK window.
 
-**Build and install.** See the [Linux distribution guide](docs/INSTALL.md) for Arch, Ubuntu/Mint/Pop!_OS, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops and other distributions. **NixOS/Nix users:** use the [flake, NixOS and Home Manager guide](docs/NIXOS.md), including `nix run github:danny19862025/FileWheel`.
+**Build and install.** See the [Linux distribution guide](docs/INSTALL.md) for Arch, Ubuntu/Mint/Pop!_OS, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops and other distributions. **NixOS/Nix users:** use the [flake, NixOS and Home Manager guide](docs/NIXOS.md), including `nix run github:danny19862025/FileWheel`. **Windows 10/11:** see the [Windows guide](docs/WINDOWS.md) for the portable ZIP, engine installation with `winget`, and building with MSYS2.
 
 ## Install the Flatpak test release
 

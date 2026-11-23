@@ -1,7 +1,6 @@
 use std::{
     fs,
     io::Write,
-    os::unix::fs::OpenOptionsExt,
     path::{Path, PathBuf},
 };
 
@@ -144,12 +143,7 @@ impl Default for Preferences {
 
 impl Preferences {
     pub fn path() -> Option<PathBuf> {
-        let root = std::env::var_os("XDG_CONFIG_HOME")
-            .filter(|v| !v.is_empty())
-            .map(PathBuf::from)
-            .filter(|p| p.is_absolute())
-            .or_else(|| std::env::var_os("HOME").map(|v| PathBuf::from(v).join(".config")))?;
-        Some(root.join("filewheel/appearance.conf"))
+        crate::platform::config_dir().map(|dir| dir.join("appearance.conf"))
     }
     pub fn parse(text: &str) -> Self {
         let mut prefs = Self::default();
@@ -189,12 +183,11 @@ impl Preferences {
         fs::create_dir_all(parent)?;
         let temp = parent.join(format!(".appearance-{}.tmp", std::process::id()));
         let result = (|| {
-            let mut file = fs::OpenOptions::new()
-                .create(true)
-                .truncate(true)
-                .write(true)
-                .mode(0o600)
-                .open(&temp)?;
+            let mut options = fs::OpenOptions::new();
+            options.create(true).truncate(true).write(true);
+            #[cfg(unix)]
+            std::os::unix::fs::OpenOptionsExt::mode(&mut options, 0o600);
+            let mut file = options.open(&temp)?;
             writeln!(
                 file,
                 "theme={}\naccent={}\nhover_sound={}\nhover_glow={}",
