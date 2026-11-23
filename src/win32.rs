@@ -187,11 +187,28 @@ fn hwnd(window: &gtk::Window) -> Option<HWND> {
 /// vertically centred against the right edge of its monitor's work area —
 /// the Windows counterpart of the Wayland layer-shell placement.
 pub fn pin_right_edge(window: &gtk::Window, right_margin: i32) {
-    let margin = right_margin;
+    // Styles must be set before the window is first shown to keep it out of
+    // the taskbar; the native window exists once GTK realizes it.
+    window.connect_realize(|window| {
+        if let Some(hwnd) = hwnd(window) {
+            unsafe {
+                let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
+                let style = (style | WS_EX_TOOLWINDOW as isize) & !(WS_EX_APPWINDOW as isize);
+                SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style);
+                let corner = DWMWCP_ROUND;
+                DwmSetWindowAttribute(
+                    hwnd,
+                    DWMWA_WINDOW_CORNER_PREFERENCE as u32,
+                    (&corner as *const i32).cast(),
+                    std::mem::size_of::<i32>() as u32,
+                );
+            }
+        }
+    });
     window.connect_map(move |window| {
         let window = window.clone();
         // Let GTK finish its own placement first.
-        gtk::glib::idle_add_local_once(move || place(&window, margin));
+        gtk::glib::idle_add_local_once(move || place(&window, right_margin));
     });
 }
 
@@ -200,16 +217,6 @@ fn place(window: &gtk::Window, right_margin: i32) {
         return;
     };
     unsafe {
-        let style = GetWindowLongPtrW(hwnd, GWL_EXSTYLE);
-        let style = (style | WS_EX_TOOLWINDOW as isize) & !(WS_EX_APPWINDOW as isize);
-        SetWindowLongPtrW(hwnd, GWL_EXSTYLE, style);
-        let corner = DWMWCP_ROUND;
-        DwmSetWindowAttribute(
-            hwnd,
-            DWMWA_WINDOW_CORNER_PREFERENCE as u32,
-            (&corner as *const i32).cast(),
-            std::mem::size_of::<i32>() as u32,
-        );
         let mut rect: RECT = std::mem::zeroed();
         GetWindowRect(hwnd, &mut rect);
         let mut info: MONITORINFO = std::mem::zeroed();
