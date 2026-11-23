@@ -17,7 +17,7 @@ jobs:
       - name: Install build and conversion engines
         run: >-
           pacman -Syu --noconfirm --needed
-          git rust gtk4 gtk4-layer-shell imagemagick ffmpeg
+          git rust gtk4 gtk4-layer-shell imagemagick libheif ffmpeg
           libreoffice-fresh poppler libarchive python qpdf ttf-dejavu
 
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6

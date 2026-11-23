@@ -1862,8 +1862,8 @@ cp -- "$source" "$outdir/${name%.*}.$extension"
         fs::write(&source, b"x").unwrap();
         let zip = Output::reserve(&source, "", "zip", false).unwrap();
         assert_eq!(zip.path.file_name().unwrap(), "backup.zip");
-        let gz = Output::reserve(&source, "", "tar.gz", false).unwrap();
-        assert_eq!(gz.path.file_name().unwrap(), "backup.tar.gz");
+        let tar = Output::reserve(&source, "", "tar", false).unwrap();
+        assert_eq!(tar.path.file_name().unwrap(), "backup.tar");
         // Only gzip input loses ".tar": "movie.tar.mp4" keeps its name.
         let other = work.path.join("movie.tar.mp4");
         fs::write(&other, b"x").unwrap();
