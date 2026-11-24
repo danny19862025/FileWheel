@@ -92,10 +92,42 @@ jobs:
           if ($app.HasExited) { throw "FileWheel.exe exited early with $($app.ExitCode)" }
           Stop-Process -Id $app.Id -Force
 
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup --no-progress -y
+            if ($LASTEXITCODE -ne 0) { throw "Installing Inno Setup failed" }
+          }
+          $version = (Select-String -Path Cargo.toml -Pattern '^version = "(.+)"' | Select-Object -First 1).Matches.Groups[1].Value
+          & $iscc "/DAppVersion=$version" packaging\windows\FileWheel.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC exited with $LASTEXITCODE" }
+
+      - name: Check the installer installs, runs and uninstalls
+        shell: pwsh
+        run: |
+          $setup = Start-Process dist\FileWheel-Setup-x86_64.exe -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/CURRENTUSER' -PassThru -Wait
+          if ($setup.ExitCode -ne 0) { throw "Setup exited with $($setup.ExitCode)" }
+          $dir = "$env:LOCALAPPDATA\Programs\FileWheel"
+          $exe = "$dir\FileWheel.exe"
+          if (-not (Test-Path $exe)) { throw "FileWheel.exe was not installed to $dir" }
+          if (-not (Test-Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\FileWheel.lnk")) { throw "Start menu shortcut missing" }
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          $app = Start-Process $exe -ArgumentList '--background' -PassThru
+          Start-Sleep -Seconds 10
+          if ($app.HasExited) { throw "Installed FileWheel.exe exited early with $($app.ExitCode)" }
+          $uninstall = Start-Process "$dir\unins000.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART' -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Uninstaller exited with $($uninstall.ExitCode)" }
+          Start-Sleep -Seconds 3
+          if (Test-Path $exe) { throw "FileWheel.exe is still present after uninstall" }
+
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: FileWheel-windows-x86_64
-          path: dist/FileWheel-windows-x86_64.zip
+          path: |
+            dist/FileWheel-windows-x86_64.zip
+            dist/FileWheel-Setup-x86_64.exe
           if-no-files-found: error
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -106,7 +138,7 @@ jobs:
           if-no-files-found: ignore
 
   windows-release:
-    # Attach the Windows ZIP to a GitHub release when a v* tag is pushed.
+    # Attach the Windows installer and ZIP to a GitHub release when a v* tag is pushed.
     if: startsWith(github.ref, 'refs/tags/v')
     needs: windows
     runs-on: ubuntu-latest
@@ -120,4 +152,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release upload "$TAG" FileWheel-windows-x86_64.zip --clobber --repo "$GITHUB_REPOSITORY"
+        run: |
+          sha256sum FileWheel-Setup-x86_64.exe FileWheel-windows-x86_64.zip > FileWheel-windows-SHA256SUMS.txt
+          if ! gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "FileWheel $TAG" --generate-notes
+          fi
+          gh release upload "$TAG" FileWheel-Setup-x86_64.exe FileWheel-windows-x86_64.zip \
+            FileWheel-windows-SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"

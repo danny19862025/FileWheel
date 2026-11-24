@@ -2,11 +2,11 @@
 
 A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. A [Windows build](docs/WINDOWS.md) shares the same code, with an always-on-top drop target and a tray icon. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
 
-**[Download the Flatpak test release](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#install-the-flatpak-test-release)
+**[Download for Windows](https://github.com/danny19862025/FileWheel/releases/latest)** · **[Download the Linux Flatpak](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#installation)
 
 ![FileWheel showing the image conversion wheel, file list, and a completed conversion](docs/screenshots/filewheel.png)
 
-After a native installation, run `"$HOME/.local/bin/filewheel"` from a terminal or open **FileWheel** in your application launcher. If `~/.local/bin` is on your PATH, `filewheel` also works. Drag files from Dolphin onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release. Dropping on the target itself stages the files in the main window. You can also choose **Add files**, drop directly onto the main wheel, or pass paths on the command line.
+See [Installation](#installation) for step-by-step instructions for Windows and Linux. Drag files onto the orange floating target at the right edge of the screen, then move onto a segment of the wheel and release.
 
 FileWheel opens with a 1.8-second logo reveal and warm light rings, followed by a typewriter animation of the header name. Click the intro or press Escape to skip. Desktop settings that disable GTK animations skip both effects. The Ribeye font and its OFL license are bundled in `data/fonts` and embedded in the binary.
 
@@ -51,62 +51,241 @@ Actions include **Copy path**, **Reveal**, **Open**, **Preview**, and **Trash**.
 
 Wayland restricts observing another application's file drags. Bring the drag onto FileWheel's visible target to open the wheel. This build does not globally intercept Shift-drag anywhere on the desktop. On compositors without layer-shell support, the target uses a regular GTK window.
 
-**Build and install.** See the [Linux distribution guide](docs/INSTALL.md) for Arch, Ubuntu/Mint/Pop!_OS, Debian, Fedora, Gentoo, openSUSE, Void, Alpine, immutable desktops and other distributions. **NixOS/Nix users:** use the [flake, NixOS and Home Manager guide](docs/NIXOS.md), including `nix run github:danny19862025/FileWheel`. **Windows 10/11:** see the [Windows guide](docs/WINDOWS.md) for the portable ZIP, engine installation with `winget`, and building with MSYS2.
+## Installation
 
-## Install the Flatpak test release
+| Platform | Easiest option | Other options |
+| --- | --- | --- |
+| **Windows 10/11** (x86_64) | [Windows installer (`FileWheel-Setup-x86_64.exe`)](#windows-installer-recommended) | [Portable ZIP](#windows-portable-zip) · [Build from source](#windows-build-from-source) |
+| **Linux** (x86_64) | [Flatpak test release](#linux-flatpak-test-release) | [Native build from source](#linux-native-build-from-source) · [Nix / NixOS](docs/NIXOS.md) |
 
-A prebuilt **x86_64 Linux Flatpak** is available from the
+FileWheel converts files with free conversion engines (ImageMagick, FFmpeg,
+LibreOffice and others). Every engine is optional: FileWheel starts without
+them, disables only the operations that need a missing engine, and lists what is
+missing under **Conversion engines** in the app. Restart FileWheel after
+installing an engine.
+
+### Windows
+
+Requires Windows 10 version 1809 or later, or Windows 11, on x86_64.
+
+#### Windows installer (recommended)
+
+1. Download **`FileWheel-Setup-x86_64.exe`** from the
+   [latest release](https://github.com/danny19862025/FileWheel/releases/latest).
+2. Double-click it. Windows SmartScreen may warn because the installer is not
+   code-signed: choose **More info → Run anyway**.
+3. Follow the wizard. No administrator rights are needed: FileWheel installs
+   for your account into `%LOCALAPPDATA%\Programs\FileWheel`. Optionally tick
+   **Create a desktop shortcut** and **Start the FileWheel drop target when I
+   sign in**.
+4. Open **FileWheel** from the Start menu.
+
+To verify the download first, compare its hash with
+`FileWheel-windows-SHA256SUMS.txt` from the same release:
+
+```powershell
+Get-FileHash .\FileWheel-Setup-x86_64.exe -Algorithm SHA256
+```
+
+**Uninstall:** Settings → Apps → Installed apps → FileWheel → Uninstall. Your
+settings in `%APPDATA%\FileWheel` are kept; delete that folder and
+`%LOCALAPPDATA%\FileWheel` to remove them too.
+
+**Silent install** (for scripts):
+`FileWheel-Setup-x86_64.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER`.
+
+#### Windows portable ZIP
+
+1. Download **`FileWheel-windows-x86_64.zip`** from the
+   [latest release](https://github.com/danny19862025/FileWheel/releases/latest).
+2. Right-click it → **Extract All…**, for example to
+   `C:\Users\<you>\Apps\FileWheel`.
+3. Run `FileWheel.exe` inside the extracted folder.
+
+Nothing is registered. To remove it, quit FileWheel and delete the folder.
+
+#### Windows conversion engines
+
+Open **PowerShell** or **Command Prompt** and install the engines you want with
+`winget` (built into Windows 10/11):
+
+```powershell
+winget install -e --id ImageMagick.ImageMagick
+winget install -e --id Gyan.FFmpeg
+winget install -e --id TheDocumentFoundation.LibreOffice
+winget install -e --id oschwartz10612.Poppler
+winget install -e --id Python.Python.3.13
+winget install -e --id QPDF.QPDF
+```
+
+| Engine | Used for |
+| --- | --- |
+| ImageMagick | Image conversion and image tools |
+| FFmpeg | Audio, video, GIF and subtitle conversion |
+| LibreOffice | Documents, slides, spreadsheets, PDF → DOCX/PPTX/XLSX |
+| Poppler | PDF → JPG/PNG/TXT/MD, slides → images |
+| Python 3 | EPUB, text clippings and gzip input |
+| QPDF | PDF metadata removal (optional) |
+
+ZIP/TAR/GZIP use the `tar.exe` built into Windows, and SHA-256 needs no engine.
+FileWheel finds engines on `PATH` and in their default install folders, so you
+only need to restart FileWheel, not sign out.
+
+#### Using FileWheel on Windows
+
+Drag files from File Explorer onto the orange always-on-top target at the right
+edge of the screen, then onto a wheel segment. The tray icon opens FileWheel;
+right-click it for **Show/hide drop target** and **Quit**. Closing the main
+window keeps FileWheel running in the tray. More details: [Windows guide](docs/WINDOWS.md).
+
+#### Windows: build from source
+
+Install [MSYS2](https://www.msys2.org/), open the **MSYS2 UCRT64** shell, and run:
+
+```bash
+pacman -S --needed git zip mingw-w64-ucrt-x86_64-{gtk4,rust,pkgconf,gcc}
+git clone https://github.com/danny19862025/FileWheel.git
+cd FileWheel
+cargo build --release --locked
+bash packaging/windows/package.sh
+```
+
+This produces the portable folder `dist/FileWheel` and
+`dist/FileWheel-windows-x86_64.zip`. To also build the installer, install
+[Inno Setup 6](https://jrsoftware.org/isdl.php) and run from PowerShell in the
+repository folder:
+
+```powershell
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=0.1.0 packaging\windows\FileWheel.iss
+```
+
+The installer is written to `dist\FileWheel-Setup-x86_64.exe`.
+
+### Linux
+
+#### Linux: Flatpak test release
+
+A prebuilt **x86_64 Flatpak** is available from the
 [GitHub test release](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1).
 No compilation is required. This is a pre-release, not a Flathub listing.
 
-Install Flatpak for your distribution first, then download
-`FileWheel-full-test-x86_64.flatpak` and
-`FileWheel-full-test-x86_64.flatpak.sha256` from that release into Downloads.
+1. Install Flatpak for your distribution (see
+   [flatpak.org/setup](https://flatpak.org/setup/)).
+2. Download `FileWheel-full-test-x86_64.flatpak` and
+   `FileWheel-full-test-x86_64.flatpak.sha256` from that release into
+   `~/Downloads`.
+3. Verify the download and continue only if it reports **OK**:
 
-Verify the download:
+   ```sh
+   cd ~/Downloads
+   sha256sum -c FileWheel-full-test-x86_64.flatpak.sha256
+   ```
 
-```sh
-cd ~/Downloads
-sha256sum -c FileWheel-full-test-x86_64.flatpak.sha256
-```
+4. Add Flathub for the shared GNOME runtime, then install and launch FileWheel:
 
-Continue only if it reports **OK**. Add Flathub for the shared GNOME runtime,
-then install and launch FileWheel:
+   ```sh
+   flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+   flatpak install --user flathub org.gnome.Platform//51
+   flatpak install --user ~/Downloads/FileWheel-full-test-x86_64.flatpak
+   flatpak run --user --branch=full-test io.github.danny19862025.FileWheel
+   ```
 
-```sh
-flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-flatpak install --user flathub org.gnome.Platform//51
-flatpak install --user ~/Downloads/FileWheel-full-test-x86_64.flatpak
-flatpak run --user --branch=full-test io.github.danny19862025.FileWheel
-```
-
-The runtime requires an additional download if it is not already installed.
 The package has home-folder access to save outputs beside originals.
-Document-to-PDF, PDF-to-PNG/text and image-to-AVIF conversions have been
-tested by the maintainer on a desktop and laptop; this does not cover every
-input file or desktop environment.
+Document-to-PDF, PDF-to-PNG/text and image-to-AVIF conversions have been tested
+by the maintainer on a desktop and laptop; this does not cover every input file
+or desktop environment. Check the release page manually for newer test builds;
+the app's update checker does not list pre-releases. To remove it:
+`flatpak uninstall --user io.github.danny19862025.FileWheel`.
 
-Check the release page manually for newer test builds; the app's stable-release
-checker does not list pre-releases. The [Flatpak preparation notes](docs/FLATPAK.md)
-describe upstream packaging background, not a Flathub submission.
+#### Linux: native build from source
 
-## Build and install natively
+**1. Install the dependencies.** You need current stable Rust, **GTK ≥ 4.10**
+and **Pango ≥ 1.56** development files, **gtk4-layer-shell**, and the
+conversion engines. Common distributions:
 
+Arch, EndeavourOS, CachyOS, Manjaro:
 
-Requires current stable Rust, **GTK ≥ 4.10** development files, and **gtk4-layer-shell**, and **Pango ≥ 1.56** development files. Image conversion requires **ImageMagick 7** (`magick`). On Arch, runtime/conversion packages are `gtk4`, `gtk4-layer-shell`, `fontconfig`, `imagemagick`, `ffmpeg`, `libreoffice-fresh` (or `libreoffice-still`), `poppler`, `libarchive`, `coreutils`, and `python` (standard-library adapters for EPUB, text clippings and gzip input). Optional `qpdf` enables PDF document metadata removal. Missing engines disable their operations and are shown under **Conversion engines**. At startup FileWheel also queries ImageMagick's read/write format support and FFmpeg's encoders, disabling image formats and explicit media presets whose required codecs are absent. These checks use bounded engine queries; runtime policies, input decoders, and tools using a container's default codec can still affect conversion. Restart FileWheel after changing engines or codecs.
+```sh
+sudo pacman -Syu --needed base-devel git rust gtk4 gtk4-layer-shell \
+  desktop-file-utils xdg-utils imagemagick ffmpeg libreoffice-fresh \
+  poppler libarchive python coreutils qpdf ttf-dejavu
+```
 
-After installing the dependencies for your distribution, clone the repository and run the installer:
+Ubuntu 26.04+ and derivatives, Debian 13+:
+
+```sh
+sudo apt update
+sudo apt install build-essential git cargo rustc pkg-config \
+  libgtk-4-dev libgtk4-layer-shell-dev desktop-file-utils xdg-utils \
+  imagemagick ffmpeg libreoffice poppler-utils libarchive-tools \
+  python3 coreutils qpdf fonts-dejavu-core
+```
+
+Fedora:
+
+```sh
+sudo dnf install gcc git rust cargo pkgconf-pkg-config \
+  gtk4-devel gtk4-layer-shell-devel desktop-file-utils xdg-utils \
+  ImageMagick ffmpeg-free libreoffice-writer libreoffice-calc \
+  libreoffice-impress poppler-utils bsdtar python3 coreutils qpdf \
+  dejavu-sans-fonts
+```
+
+Gentoo, openSUSE, Void, Alpine, immutable desktops (Bazzite, SteamOS, Fedora
+Atomic), enterprise distributions, and older Ubuntu/Debian releases are covered
+in the [Linux distribution guide](docs/INSTALL.md). On NixOS or any distribution
+with Nix, use the [flake guide](docs/NIXOS.md) or simply
+`nix run github:danny19862025/FileWheel`.
+
+If your distribution's Rust is too old for the locked dependencies, install
+current stable Rust with [rustup](https://rust-lang.org/tools/install/) and open
+a new terminal. Image conversion needs **ImageMagick 7** (`magick`);
+ImageMagick 6 is not compatible.
+
+**2. Clone and install:**
 
 ```sh
 git clone https://github.com/danny19862025/FileWheel.git
 cd FileWheel
 bash install.sh
+```
+
+`install.sh` builds the release binary and installs it for your user only, to
+`~/.local/bin/filewheel`, plus a launcher in `~/.local/share/applications` and an
+icon in `~/.local/share/icons`. No `sudo` and no separate `cargo build` are
+needed, and no file associations are changed.
+
+**3. Run it** from your application launcher (**FileWheel**), or from a terminal:
+
+```sh
 "$HOME/.local/bin/filewheel"
 ```
 
-If you already cloned FileWheel, open a terminal inside that **FileWheel folder** and run the last two lines. `install.sh` builds the release binary automatically; a separate `cargo build` command is not needed.
+If `~/.local/bin` is on your `PATH`, `filewheel` also works.
+`filewheel --background` starts just the floating drop target.
 
-The installer writes only to `~/.local/bin`, `~/.local/share/applications`, and `~/.local/share/icons`. No file associations are made the default. Core conversion jobs use executable paths and argument arrays without a shell. Job staging uses private temporary folders, reserves output names without replacing existing files, and cleans up failed/cancelled output. Cancellation and timeouts kill the converter's process group, including wrapper children. SHA-256, Copy text, and Word count stage in the system temporary directory, so they work with readable files in non-writable folders. File-producing operations still save beside the original.
+**Update:** inside the `FileWheel` folder run `git pull && bash install.sh`.
+
+**Uninstall:**
+
+```sh
+rm -f ~/.local/bin/filewheel \
+  ~/.local/share/applications/local.danny.FileWheel.desktop \
+  ~/.local/share/icons/hicolor/scalable/apps/filewheel.svg
+rm -rf ~/.config/filewheel ~/.local/state/filewheel   # optional: settings and logs
+```
+
+#### Using FileWheel on Linux
+
+Drag files from your file manager onto the orange floating target at the right
+edge of the screen, then move onto a segment of the wheel and release. Dropping
+on the target itself stages the files in the main window. You can also choose
+**Add files**, drop directly onto the main wheel, or pass paths on the command
+line.
+
+## Technical notes
+
+On Linux, `install.sh` writes only to `~/.local/bin`, `~/.local/share/applications`, and `~/.local/share/icons`. No file associations are made the default. Core conversion jobs use executable paths and argument arrays without a shell. Job staging uses private temporary folders, reserves output names without replacing existing files, and cleans up failed/cancelled output. Cancellation and timeouts kill the converter's process group, including wrapper children. SHA-256, Copy text, and Word count stage in the system temporary directory, so they work with readable files in non-writable folders. File-producing operations still save beside the original.
 
 Local diagnostics are at `${XDG_STATE_HOME:-~/.local/state}/filewheel/jobs.log`. New entries contain only the operation, source/output paths, and outcome. Clipboard contents, document text, and converter diagnostics are excluded. Logs from earlier builds are not rewritten and may contain previously copied text.
 
