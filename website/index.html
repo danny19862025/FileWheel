@@ -550,10 +550,11 @@
             <h2>Install FileWheel on Windows &amp; Linux</h2>
           </div>
           <div class="install-tabs" role="tablist" aria-label="Installation platform">
-            <button class="chip-btn active" data-install-tab="windows" type="button">🪟 Windows 10/11</button>
+            <button class="chip-btn active" data-install-tab="windows" type="button">🪟 Windows</button>
             <button class="chip-btn" data-install-tab="source" type="button">🐧 Linux Distros</button>
-            <button class="chip-btn" data-install-tab="flatpak" type="button">📦 Linux Flatpak</button>
-            <button class="chip-btn" data-install-tab="nix" type="button">❄️ Nix / NixOS</button>
+            <button class="chip-btn" data-install-tab="flatpak" type="button">📦 Flatpak</button>
+            <button class="chip-btn" data-install-tab="nix" type="button">❄️ Nix</button>
+            <button class="chip-btn" data-install-tab="deps" type="button">📋 All Dependencies</button>
           </div>
         </div>
 
@@ -643,48 +644,101 @@ winget install -e --id QPDF.QPDF</code></pre>
           <!-- Linux Distros & Source Panel -->
           <div class="install-panel" data-install-panel="source">
             <div class="subtab-bar" role="tablist" aria-label="Linux distribution">
-              <button class="subtab-btn active" data-subtab-group="linux" data-subtab="distro-arch" type="button">Arch / CachyOS / Manjaro</button>
-              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-ubuntu" type="button">Ubuntu 26.04+ / Debian 13+</button>
+              <button class="subtab-btn active" data-subtab-group="linux" data-subtab="distro-arch" type="button">Arch / CachyOS</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-ubuntu" type="button">Ubuntu / Debian</button>
               <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-fedora" type="button">Fedora</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-suse" type="button">openSUSE</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-gentoo" type="button">Gentoo</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-void" type="button">Void</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-alpine" type="button">Alpine</button>
             </div>
 
             <div class="install-two-col">
               <!-- Left Column: Distro Dependencies -->
               <div class="install-card subtab-panel active" data-subtab-panel="distro-arch">
                 <div class="code-head">
-                  <span>1. Install Dependencies (Arch / EndeavourOS / CachyOS / Manjaro)</span>
+                  <span>1. Arch / EndeavourOS / CachyOS / Manjaro</span>
                   <button class="copy-btn" data-copy-target="codeArch" type="button">Copy</button>
                 </div>
                 <pre id="codeArch"><code>sudo pacman -Syu --needed base-devel git rust gtk4 gtk4-layer-shell \
   desktop-file-utils xdg-utils imagemagick ffmpeg libreoffice-fresh \
-  poppler libarchive python coreutils qpdf ttf-dejavu</code></pre>
-                <p class="install-note">Requires Rust stable, <strong>GTK ≥ 4.10</strong>, <strong>Pango ≥ 1.56</strong>, and <strong>ImageMagick 7</strong> (<code>magick</code>).</p>
+  poppler libarchive python coreutils qpdf ttf-dejavu libcanberra</code></pre>
+                <p class="install-note">Requires Rust stable, <strong>GTK ≥ 4.10</strong>, <strong>Pango ≥ 1.56</strong>, and <strong>ImageMagick 7</strong> (<code>magick</code>). <code>libreoffice-still</code> also works.</p>
               </div>
 
               <div class="install-card subtab-panel" data-subtab-panel="distro-ubuntu">
                 <div class="code-head">
-                  <span>1. Install Dependencies (Ubuntu 26.04+ / Debian 13+)</span>
+                  <span>1. Ubuntu 26.04+ / Debian 13 (trixie)+</span>
                   <button class="copy-btn" data-copy-target="codeUbuntu" type="button">Copy</button>
                 </div>
                 <pre id="codeUbuntu"><code>sudo apt update
 sudo apt install build-essential git cargo rustc pkg-config \
   libgtk-4-dev libgtk4-layer-shell-dev desktop-file-utils xdg-utils \
   imagemagick ffmpeg libreoffice poppler-utils libarchive-tools \
-  python3 coreutils qpdf fonts-dejavu-core</code></pre>
-                <p class="install-note">If your distro's Rust is older, install current stable Rust via <a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer" class="inline-link">rustup</a>.</p>
+  python3 coreutils qpdf fonts-dejavu-core libcanberra0</code></pre>
+                <p class="install-note">If packaged Rust is older, install current stable via <a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer" class="inline-link">rustup</a>. Older LTS releases should use Flatpak or Nix.</p>
               </div>
 
               <div class="install-card subtab-panel" data-subtab-panel="distro-fedora">
                 <div class="code-head">
-                  <span>1. Install Dependencies (Fedora)</span>
+                  <span>1. Fedora Workstation / KDE</span>
                   <button class="copy-btn" data-copy-target="codeFedora" type="button">Copy</button>
                 </div>
                 <pre id="codeFedora"><code>sudo dnf install gcc git rust cargo pkgconf-pkg-config \
   gtk4-devel gtk4-layer-shell-devel desktop-file-utils xdg-utils \
   ImageMagick ffmpeg-free libreoffice-writer libreoffice-calc \
   libreoffice-impress poppler-utils bsdtar python3 coreutils qpdf \
-  dejavu-sans-fonts</code></pre>
-                <p class="install-note">Gentoo, openSUSE, Void, Alpine &amp; immutable distros (Bazzite, SteamOS) are in <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/INSTALL.md" target="_blank" rel="noopener noreferrer" class="inline-link">docs/INSTALL.md</a>.</p>
+  dejavu-sans-fonts libcanberra</code></pre>
+                <p class="install-note"><code>ffmpeg-free</code> has fewer codecs; add Fedora multimedia plugins if needed and restart FileWheel.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-suse">
+                <div class="code-head">
+                  <span>1. openSUSE Tumbleweed / Slowroll</span>
+                  <button class="copy-btn" data-copy-target="codeSuse" type="button">Copy</button>
+                </div>
+                <pre id="codeSuse"><code>sudo zypper install gcc gcc-c++ make git rust cargo pkg-config \
+  gtk4-devel gtk4-layer-shell-devel desktop-file-utils xdg-utils \
+  ImageMagick ffmpeg libreoffice-writer libreoffice-calc \
+  libreoffice-impress poppler-tools bsdtar python3 coreutils qpdf</code></pre>
+                <p class="install-note">Check <code>zypper search -s gtk4-layer-shell</code> &amp; <code>bsdtar</code> for your repos; Leap users should verify GTK ≥ 4.10 &amp; ImageMagick 7.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-gentoo">
+                <div class="code-head">
+                  <span>1. Gentoo (Portage)</span>
+                  <button class="copy-btn" data-copy-target="codeGentoo" type="button">Copy</button>
+                </div>
+                <pre id="codeGentoo"><code>sudo emerge --ask dev-vcs/git dev-lang/rust virtual/pkgconfig \
+  gui-libs/gtk:4 gui-libs/gtk4-layer-shell dev-util/desktop-file-utils \
+  x11-misc/xdg-utils media-gfx/imagemagick media-video/ffmpeg \
+  app-office/libreoffice app-text/poppler app-arch/libarchive \
+  dev-lang/python sys-apps/coreutils app-text/qpdf</code></pre>
+                <p class="install-note">Enable <code>wayland</code> on GTK4, <code>utils</code> on Poppler, and <code>pdfimport</code> on LibreOffice as needed.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-void">
+                <div class="code-head">
+                  <span>1. Void Linux (xbps)</span>
+                  <button class="copy-btn" data-copy-target="codeVoid" type="button">Copy</button>
+                </div>
+                <pre id="codeVoid"><code>sudo xbps-install -S
+sudo xbps-install base-devel git rust cargo pkg-config gtk4-devel \
+  gtk4-layer-shell-devel desktop-file-utils xdg-utils ImageMagick \
+  ffmpeg libreoffice poppler bsdtar python3 coreutils qpdf</code></pre>
+                <p class="install-note">Build on the same libc variant (glibc vs musl) that you run.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-alpine">
+                <div class="code-head">
+                  <span>1. Alpine Linux (community repo)</span>
+                  <button class="copy-btn" data-copy-target="codeAlpine" type="button">Copy</button>
+                </div>
+                <pre id="codeAlpine"><code>sudo apk add build-base bash git rust cargo pkgconf gtk4.0-dev \
+  gtk4-layer-shell-dev desktop-file-utils xdg-utils imagemagick \
+  ffmpeg libreoffice poppler-utils libarchive-tools python3 \
+  coreutils qpdf font-dejavu</code></pre>
+                <p class="install-note">Use <code>doas</code> if configured; build locally for musl.</p>
               </div>
 
               <!-- Right Column: Clone, Install, Run, Update & Uninstall -->
@@ -697,7 +751,7 @@ sudo apt install build-essential git cargo rustc pkg-config \
 cd FileWheel
 bash install.sh
 "$HOME/.local/bin/filewheel"</code></pre>
-                <p class="install-note">Installs to <code>~/.local/bin/filewheel</code> + launcher &amp; icon. Use <code>filewheel --background</code> for target-only mode. Update anytime with <code>git pull &amp;&amp; bash install.sh</code>.</p>
+                <p class="install-note">Installs to <code>~/.local/bin/filewheel</code> + launcher &amp; icon. Use <code>filewheel --background</code> for target-only mode. Update with <code>git pull &amp;&amp; bash install.sh</code>.</p>
               </div>
             </div>
           </div>
@@ -756,6 +810,35 @@ nix run github:danny19862025/FileWheel
 
 # Or install into your user profile
 nix profile install github:danny19862025/FileWheel</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- All Dependencies Panel -->
+          <div class="install-panel" data-install-panel="deps">
+            <div class="install-two-col">
+              <div class="install-card">
+                <h3>Core Build &amp; Runtime Dependencies</h3>
+                <ul class="deps-list">
+                  <li><strong>Rust &amp; Cargo</strong> — Current stable Rust (Edition 2024)</li>
+                  <li><strong>C toolchain &amp; pkg-config</strong> — <code>gcc</code> / <code>base-devel</code> / MSYS2 UCRT64</li>
+                  <li><strong>GTK4 ≥ 4.10 &amp; Pango ≥ 1.56</strong> — Native UI runtime &amp; dev headers</li>
+                  <li><strong>gtk4-layer-shell</strong> (Linux) — Required at link time (not GTK3 <code>gtk-layer-shell</code>)</li>
+                  <li><strong>Git, Bash, coreutils</strong> — Source build, <code>install.sh</code>, <code>sha256sum</code></li>
+                  <li><strong>desktop-file-utils, xdg-utils &amp; fonts</strong> — Launcher, desktop actions &amp; rendering</li>
+                </ul>
+              </div>
+              <div class="install-card">
+                <h3>Optional Engines &amp; Enhancements</h3>
+                <ul class="deps-list">
+                  <li><strong>ImageMagick 7</strong> (<code>magick</code>) — Image conversions &amp; tools (v6 incompatible)</li>
+                  <li><strong>FFmpeg</strong> (<code>ffmpeg</code>, <code>ffprobe</code>) — Audio, video, GIF &amp; subtitles</li>
+                  <li><strong>LibreOffice</strong> — Documents, slides, spreadsheets, PDF → Office</li>
+                  <li><strong>Poppler</strong> (<code>pdftoppm</code>, <code>pdftotext</code>) — PDF → JPG/PNG/TXT/MD, slides → images</li>
+                  <li><strong>libarchive</strong> (<code>bsdtar</code> / Win <code>tar.exe</code>) — ZIP, TAR, GZIP, RAR input</li>
+                  <li><strong>Python 3</strong> — EPUB, macOS text clippings &amp; gzip adapters</li>
+                  <li><strong>qpdf</strong> — Optional PDF metadata removal · <strong>libcanberra</strong> (Linux) — Hover audio · <strong>curl</strong> — Update check</li>
+                </ul>
               </div>
             </div>
           </div>

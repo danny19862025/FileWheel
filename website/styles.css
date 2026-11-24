@@ -1528,6 +1528,36 @@ body.glow-enabled .wheel-wedge-group.drag-hover .wheel-wedge-path {
   text-underline-offset: 2px;
 }
 
+.deps-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.81rem;
+  line-height: 1.48;
+  color: var(--text-muted);
+}
+
+.deps-list li {
+  padding-left: 14px;
+  position: relative;
+}
+
+.deps-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.deps-list strong {
+  color: var(--text);
+}
+
 .install-two-col {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
