@@ -541,43 +541,91 @@
       </div>
     </section>
 
-    <!-- SLIDE 8: Install & Download -->
-    <section class="slide" data-title="Install" data-index="7">
+    <!-- SLIDE 8: Full Installation Guide (Windows & Linux) -->
+    <section class="slide" data-title="Install Guide" data-index="7">
       <div class="slide-inner slide-wide">
         <div class="slide-header compact reveal-item" style="--d: 0ms">
           <div>
-            <span class="kicker">Get Started</span>
-            <h2>Install FileWheel on Windows or Linux</h2>
+            <span class="kicker">Step-by-Step Installation Guide</span>
+            <h2>Install FileWheel on Windows &amp; Linux</h2>
           </div>
-          <div class="install-tabs" role="tablist" aria-label="Installation method">
-            <button class="chip-btn active" data-install-tab="windows" type="button">Windows</button>
-            <button class="chip-btn" data-install-tab="flatpak" type="button">Linux Flatpak</button>
-            <button class="chip-btn" data-install-tab="source" type="button">Linux Source</button>
-            <button class="chip-btn" data-install-tab="nix" type="button">Nix / NixOS</button>
+          <div class="install-tabs" role="tablist" aria-label="Installation platform">
+            <button class="chip-btn active" data-install-tab="windows" type="button">🪟 Windows 10/11</button>
+            <button class="chip-btn" data-install-tab="source" type="button">🐧 Linux Distros</button>
+            <button class="chip-btn" data-install-tab="flatpak" type="button">📦 Linux Flatpak</button>
+            <button class="chip-btn" data-install-tab="nix" type="button">❄️ Nix / NixOS</button>
           </div>
         </div>
 
         <div class="install-panels reveal-item" style="--d: 100ms">
           <!-- Windows Panel -->
           <div class="install-panel active" data-install-panel="windows">
+            <div class="subtab-bar" role="tablist" aria-label="Windows installation option">
+              <button class="subtab-btn active" data-subtab-group="win" data-subtab="win-installer" type="button">Installer (Recommended)</button>
+              <button class="subtab-btn" data-subtab-group="win" data-subtab="win-portable" type="button">Portable ZIP</button>
+              <button class="subtab-btn" data-subtab-group="win" data-subtab="win-source" type="button">Build from Source (MSYS2)</button>
+            </div>
+
             <div class="install-two-col">
-              <div class="install-card">
-                <h3>1. Download Installer or Portable ZIP</h3>
-                <p>No admin rights needed. Installs per-user into <code>%LOCALAPPDATA%\Programs\FileWheel</code>.</p>
+              <!-- Left Column: Switches by Windows sub-tab -->
+              <div class="install-card subtab-panel active" data-subtab-panel="win-installer">
+                <h3>Windows Installer (x86_64 · No Admin Needed)</h3>
+                <ol class="install-steps">
+                  <li>Download <strong><code>FileWheel-Setup-x86_64.exe</code></strong> from the latest GitHub release.</li>
+                  <li>Double-click to run. If SmartScreen warns (unsigned), click <strong>More info → Run anyway</strong>.</li>
+                  <li>Follow the wizard — installs per-user into <code>%LOCALAPPDATA%\Programs\FileWheel</code> with optional desktop shortcut &amp; sign-in startup.</li>
+                  <li>Launch <strong>FileWheel</strong> from the Start menu and drag files onto the orange edge target.</li>
+                </ol>
                 <div class="install-actions">
                   <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
                     Download FileWheel-Setup-x86_64.exe ↗
                   </a>
-                  <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
-                    Portable ZIP
-                  </a>
                 </div>
-                <p class="install-note">Verify SHA-256 with <code>Get-FileHash .\FileWheel-Setup-x86_64.exe -Algorithm SHA256</code>.</p>
+                <div class="code-head">
+                  <span>Verify SHA-256 (PowerShell)</span>
+                  <button class="copy-btn" data-copy-target="codeWinHash" type="button">Copy</button>
+                </div>
+                <pre id="codeWinHash"><code>Get-FileHash .\FileWheel-Setup-x86_64.exe -Algorithm SHA256</code></pre>
+                <p class="install-note"><strong>Uninstall:</strong> Settings → Apps → Installed apps → FileWheel → Uninstall.</p>
               </div>
 
+              <div class="install-card subtab-panel" data-subtab-panel="win-portable">
+                <h3>Windows Portable ZIP (Zero Registry Changes)</h3>
+                <ol class="install-steps">
+                  <li>Download <strong><code>FileWheel-windows-x86_64.zip</code></strong> from the latest GitHub release.</li>
+                  <li>Right-click the archive → <strong>Extract All…</strong> (e.g. to <code>C:\Users\&lt;you&gt;\Apps\FileWheel</code>).</li>
+                  <li>Run <strong><code>FileWheel.exe</code></strong> inside the extracted folder.</li>
+                </ol>
+                <div class="install-actions">
+                  <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                    Download Portable ZIP ↗
+                  </a>
+                  <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/WINDOWS.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    Windows Guide ↗
+                  </a>
+                </div>
+                <p class="install-note"><strong>Uninstall:</strong> Quit FileWheel from the system tray and delete the extracted folder.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="win-source">
+                <h3>Build from Source (MSYS2 UCRT64)</h3>
+                <p>Install <a href="https://www.msys2.org/" target="_blank" rel="noopener noreferrer" class="inline-link">MSYS2</a>, open the <strong>MSYS2 UCRT64</strong> shell, and run:</p>
+                <div class="code-head">
+                  <span>Build &amp; package portable ZIP</span>
+                  <button class="copy-btn" data-copy-target="codeWinBuild" type="button">Copy</button>
+                </div>
+                <pre id="codeWinBuild"><code>pacman -S --needed git zip mingw-w64-ucrt-x86_64-{gtk4,rust,pkgconf,gcc}
+git clone https://github.com/danny19862025/FileWheel.git
+cd FileWheel
+cargo build --release --locked
+bash packaging/windows/package.sh</code></pre>
+                <p class="install-note">Produces <code>dist/FileWheel</code> and <code>dist/FileWheel-windows-x86_64.zip</code>.</p>
+              </div>
+
+              <!-- Right Column: Windows Conversion Engines -->
               <div class="install-card">
                 <div class="code-head">
-                  <span>2. Optional Conversion Engines (PowerShell / winget)</span>
+                  <span>Optional Conversion Engines (PowerShell / winget)</span>
                   <button class="copy-btn" data-copy-target="codeWin" type="button">Copy</button>
                 </div>
                 <pre id="codeWin"><code>winget install -e --id ImageMagick.ImageMagick
@@ -586,6 +634,70 @@ winget install -e --id TheDocumentFoundation.LibreOffice
 winget install -e --id oschwartz10612.Poppler
 winget install -e --id Python.Python.3.13
 winget install -e --id QPDF.QPDF</code></pre>
+                <p class="install-note">ZIP/TAR/GZIP use Windows' built-in <code>tar.exe</code> and SHA-256 needs no engine. Restart FileWheel after installing engines — no sign-out needed.</p>
+                <p class="install-note"><strong>Silent install:</strong> <code>FileWheel-Setup-x86_64.exe /VERYSILENT /SUPPRESSMSGBOXES /CURRENTUSER</code></p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linux Distros & Source Panel -->
+          <div class="install-panel" data-install-panel="source">
+            <div class="subtab-bar" role="tablist" aria-label="Linux distribution">
+              <button class="subtab-btn active" data-subtab-group="linux" data-subtab="distro-arch" type="button">Arch / CachyOS / Manjaro</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-ubuntu" type="button">Ubuntu 26.04+ / Debian 13+</button>
+              <button class="subtab-btn" data-subtab-group="linux" data-subtab="distro-fedora" type="button">Fedora</button>
+            </div>
+
+            <div class="install-two-col">
+              <!-- Left Column: Distro Dependencies -->
+              <div class="install-card subtab-panel active" data-subtab-panel="distro-arch">
+                <div class="code-head">
+                  <span>1. Install Dependencies (Arch / EndeavourOS / CachyOS / Manjaro)</span>
+                  <button class="copy-btn" data-copy-target="codeArch" type="button">Copy</button>
+                </div>
+                <pre id="codeArch"><code>sudo pacman -Syu --needed base-devel git rust gtk4 gtk4-layer-shell \
+  desktop-file-utils xdg-utils imagemagick ffmpeg libreoffice-fresh \
+  poppler libarchive python coreutils qpdf ttf-dejavu</code></pre>
+                <p class="install-note">Requires Rust stable, <strong>GTK ≥ 4.10</strong>, <strong>Pango ≥ 1.56</strong>, and <strong>ImageMagick 7</strong> (<code>magick</code>).</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-ubuntu">
+                <div class="code-head">
+                  <span>1. Install Dependencies (Ubuntu 26.04+ / Debian 13+)</span>
+                  <button class="copy-btn" data-copy-target="codeUbuntu" type="button">Copy</button>
+                </div>
+                <pre id="codeUbuntu"><code>sudo apt update
+sudo apt install build-essential git cargo rustc pkg-config \
+  libgtk-4-dev libgtk4-layer-shell-dev desktop-file-utils xdg-utils \
+  imagemagick ffmpeg libreoffice poppler-utils libarchive-tools \
+  python3 coreutils qpdf fonts-dejavu-core</code></pre>
+                <p class="install-note">If your distro's Rust is older, install current stable Rust via <a href="https://rust-lang.org/tools/install/" target="_blank" rel="noopener noreferrer" class="inline-link">rustup</a>.</p>
+              </div>
+
+              <div class="install-card subtab-panel" data-subtab-panel="distro-fedora">
+                <div class="code-head">
+                  <span>1. Install Dependencies (Fedora)</span>
+                  <button class="copy-btn" data-copy-target="codeFedora" type="button">Copy</button>
+                </div>
+                <pre id="codeFedora"><code>sudo dnf install gcc git rust cargo pkgconf-pkg-config \
+  gtk4-devel gtk4-layer-shell-devel desktop-file-utils xdg-utils \
+  ImageMagick ffmpeg-free libreoffice-writer libreoffice-calc \
+  libreoffice-impress poppler-utils bsdtar python3 coreutils qpdf \
+  dejavu-sans-fonts</code></pre>
+                <p class="install-note">Gentoo, openSUSE, Void, Alpine &amp; immutable distros (Bazzite, SteamOS) are in <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/INSTALL.md" target="_blank" rel="noopener noreferrer" class="inline-link">docs/INSTALL.md</a>.</p>
+              </div>
+
+              <!-- Right Column: Clone, Install, Run, Update & Uninstall -->
+              <div class="install-card">
+                <div class="code-head">
+                  <span>2. Clone, Build &amp; User-Local Install (No sudo)</span>
+                  <button class="copy-btn" data-copy-target="codeClone" type="button">Copy</button>
+                </div>
+                <pre id="codeClone"><code>git clone https://github.com/danny19862025/FileWheel.git
+cd FileWheel
+bash install.sh
+"$HOME/.local/bin/filewheel"</code></pre>
+                <p class="install-note">Installs to <code>~/.local/bin/filewheel</code> + launcher &amp; icon. Use <code>filewheel --background</code> for target-only mode. Update anytime with <code>git pull &amp;&amp; bash install.sh</code>.</p>
               </div>
             </div>
           </div>
@@ -595,16 +707,21 @@ winget install -e --id QPDF.QPDF</code></pre>
             <div class="install-two-col">
               <div class="install-card">
                 <h3>Prebuilt x86_64 Flatpak Test Release</h3>
-                <p>No compilation required. Download <code>FileWheel-full-test-x86_64.flatpak</code> and its <code>.sha256</code> file to <code>~/Downloads</code>.</p>
+                <ol class="install-steps">
+                  <li>Install Flatpak for your distro (<a href="https://flatpak.org/setup/" target="_blank" rel="noopener noreferrer" class="inline-link">flatpak.org/setup</a>).</li>
+                  <li>Download <code>FileWheel-full-test-x86_64.flatpak</code> and <code>.sha256</code> into <code>~/Downloads</code>.</li>
+                  <li>Verify checksum reports <strong>OK</strong>, then add Flathub for the shared GNOME 51 runtime and install.</li>
+                </ol>
                 <div class="install-actions">
                   <a href="https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
                     Download Flatpak Release ↗
                   </a>
                 </div>
+                <p class="install-note"><strong>Uninstall:</strong> <code>flatpak uninstall --user io.github.danny19862025.FileWheel</code></p>
               </div>
               <div class="install-card">
                 <div class="code-head">
-                  <span>Verify, install &amp; run</span>
+                  <span>Verify, Install &amp; Launch</span>
                   <button class="copy-btn" data-copy-target="codeFlatpak" type="button">Copy</button>
                 </div>
                 <pre id="codeFlatpak"><code>cd ~/Downloads &amp;&amp; sha256sum -c FileWheel-full-test-x86_64.flatpak.sha256
@@ -612,33 +729,7 @@ flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flath
 flatpak install --user flathub org.gnome.Platform//51
 flatpak install --user ~/Downloads/FileWheel-full-test-x86_64.flatpak
 flatpak run --user --branch=full-test io.github.danny19862025.FileWheel</code></pre>
-              </div>
-            </div>
-          </div>
-
-          <!-- Linux Source Panel -->
-          <div class="install-panel" data-install-panel="source">
-            <div class="install-two-col">
-              <div class="install-card">
-                <div class="code-head">
-                  <span>Arch / CachyOS / EndeavourOS Dependencies</span>
-                  <button class="copy-btn" data-copy-target="codeArch" type="button">Copy</button>
-                </div>
-                <pre id="codeArch"><code>sudo pacman -Syu --needed base-devel git rust gtk4 gtk4-layer-shell \
-  desktop-file-utils xdg-utils imagemagick ffmpeg libreoffice-fresh \
-  poppler libarchive python coreutils qpdf ttf-dejavu</code></pre>
-                <p class="install-note">Ubuntu 26.04+, Debian 13+, Fedora &amp; immutable distros are in <code>docs/INSTALL.md</code>.</p>
-              </div>
-              <div class="install-card">
-                <div class="code-head">
-                  <span>Clone &amp; user-local install (no sudo)</span>
-                  <button class="copy-btn" data-copy-target="codeClone" type="button">Copy</button>
-                </div>
-                <pre id="codeClone"><code>git clone https://github.com/danny19862025/FileWheel.git
-cd FileWheel
-bash install.sh
-"$HOME/.local/bin/filewheel"</code></pre>
-                <p class="install-note">Installs to <code>~/.local/bin/filewheel</code> plus launcher &amp; icon.</p>
+                <p class="install-note">Includes home-folder access so converted files save beside your originals.</p>
               </div>
             </div>
           </div>
@@ -648,7 +739,7 @@ bash install.sh
             <div class="install-two-col">
               <div class="install-card">
                 <h3>Run Instantly with Nix Flakes</h3>
-                <p>Works on NixOS or any Linux distribution with Nix enabled — bundles GTK4, layer-shell, and optional <code>libcanberra</code> audio support.</p>
+                <p>Works on NixOS or any Linux distro with Nix enabled. Bundles GTK4, <code>gtk4-layer-shell</code>, and optional <code>libcanberra</code> hover audio support automatically.</p>
                 <div class="install-actions">
                   <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/NIXOS.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
                     Read NixOS Guide ↗
@@ -657,10 +748,14 @@ bash install.sh
               </div>
               <div class="install-card">
                 <div class="code-head">
-                  <span>Run directly from GitHub</span>
+                  <span>Run or Install from GitHub Flake</span>
                   <button class="copy-btn" data-copy-target="codeNix" type="button">Copy</button>
                 </div>
-                <pre id="codeNix"><code>nix run github:danny19862025/FileWheel</code></pre>
+                <pre id="codeNix"><code># Run immediately without installing
+nix run github:danny19862025/FileWheel
+
+# Or install into your user profile
+nix profile install github:danny19862025/FileWheel</code></pre>
               </div>
             </div>
           </div>

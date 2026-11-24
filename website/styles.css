@@ -1471,6 +1471,63 @@ body.glow-enabled .wheel-wedge-group.drag-hover .wheel-wedge-path {
   display: block;
 }
 
+.subtab-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.subtab-btn {
+  padding: 5px 12px;
+  border-radius: 9px;
+  font-size: 0.77rem;
+  font-weight: 600;
+  background: var(--bg-elev);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  transition: all 0.16s ease;
+}
+
+.subtab-btn:hover {
+  border-color: var(--accent-border);
+  color: var(--text);
+}
+
+.subtab-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.subtab-panel {
+  display: none;
+}
+
+.subtab-panel.active {
+  display: flex;
+}
+
+.install-steps {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.83rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.install-steps strong {
+  color: var(--text);
+}
+
+.inline-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .install-two-col {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

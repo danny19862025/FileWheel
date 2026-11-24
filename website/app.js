@@ -803,6 +803,24 @@
       });
     });
 
+    // Install Sub-Tabs (Windows options & Linux distros)
+    document.querySelectorAll('[data-subtab]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setAutoPlay(false);
+        const group = btn.dataset.subtabGroup;
+        const target = btn.dataset.subtab;
+        document.querySelectorAll(`[data-subtab-group="${group}"]`).forEach((b) => {
+          b.classList.toggle('active', b === btn);
+        });
+        const parentPanel = btn.closest('.install-panel');
+        if (parentPanel) {
+          parentPanel.querySelectorAll('[data-subtab-panel]').forEach((p) => {
+            p.classList.toggle('active', p.dataset.subtabPanel === target);
+          });
+        }
+      });
+    });
+
     // Copy buttons
     document.querySelectorAll('[data-copy-target]').forEach((btn) => {
       btn.addEventListener('click', async () => {
