@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FileWheel — Modern Reveal Showcase</title>
+  <meta name="description" content="FileWheel — a native Rust + GTK4 radial drag-and-drop file converter and tool wheel for Linux and Windows." />
+  <link rel="icon" type="image/svg+xml" href="assets/filewheel.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Ribeye&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Auto-slide top progress bar -->
+  <div class="autoslide-bar" aria-hidden="true">
+    <div class="autoslide-fill" id="autoSlideFill"></div>
+  </div>
+
+  <!-- Ambient animated background -->
+  <div class="ambient-bg" aria-hidden="true">
+    <div class="ambient-orb orb-1"></div>
+    <div class="ambient-orb orb-2"></div>
+    <div class="ambient-grid"></div>
+  </div>
+
+  <!-- Floating Minimal Top Bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="brand-btn" id="brandHomeBtn" type="button" title="Go to first slide">
+        <img src="assets/filewheel.svg" alt="" width="28" height="28" class="brand-icon" />
+        <span class="brand-name">FileWheel</span>
+        <span class="version-pill">v0.1.0</span>
+      </button>
+    </div>
+
+    <div class="topbar-center">
+      <span class="slide-kicker-pill" id="topbarSlideLabel">01 / 08 · Overview</span>
+    </div>
+
+    <div class="topbar-right">
+      <button class="icon-btn" id="soundToggleBtn" type="button" title="Toggle hover sound" aria-label="Toggle hover sound" aria-pressed="true">
+        <svg class="icon-sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+        </svg>
+        <svg class="icon-sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+          <line x1="23" y1="9" x2="17" y2="15"></line>
+          <line x1="17" y1="9" x2="23" y2="15"></line>
+        </svg>
+      </button>
+      <button class="icon-btn" id="overviewToggleBtn" type="button" title="Slide Overview (O)" aria-label="Toggle slide overview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="3" width="7" height="7" rx="1.5"></rect>
+          <rect x="3" y="14" width="7" height="7" rx="1.5"></rect>
+          <rect x="14" y="14" width="7" height="7" rx="1.5"></rect>
+        </svg>
+      </button>
+      <button class="icon-btn" id="themeToggle" type="button" title="Toggle Dark/Light Theme (T)" aria-label="Toggle theme">
+        <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+        </svg>
+        <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+      <button class="icon-btn" id="fullscreenBtn" type="button" title="Fullscreen (F)" aria-label="Toggle fullscreen">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
+      <a href="https://github.com/danny19862025/FileWheel" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+        GitHub ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Reveal Viewport -->
+  <main class="reveal-deck" id="revealDeck" aria-live="polite">
+
+    <!-- SLIDE 1: Hero Reveal -->
+    <section class="slide active" data-title="Overview" data-index="0">
+      <div class="slide-inner slide-hero">
+        <div class="hero-emblem reveal-item" style="--d: 0ms" aria-hidden="true">
+          <span class="ring ring-1"></span>
+          <span class="ring ring-2"></span>
+          <span class="ring ring-3"></span>
+          <div class="emblem-core">
+            <img src="assets/filewheel.svg" alt="FileWheel icon" width="76" height="76" />
+          </div>
+        </div>
+
+        <div class="hero-badge reveal-item" style="--d: 70ms">
+          <span class="pulse-dot"></span>
+          <span>Open Source · Native Rust &amp; GTK4 · Linux &amp; Windows</span>
+        </div>
+
+        <h1 class="hero-title reveal-item" style="--d: 140ms">
+          Drop. Spin.<br />
+          <span class="gradient-text">Convert locally.</span>
+        </h1>
+
+        <p class="hero-subtitle reveal-item" style="--d: 210ms">
+          A native radial-menu file converter and utility wheel for Linux and Windows.
+          Drag files onto the floating edge target, glide onto a rounded wedge, and release — outputs save right beside your originals.
+        </p>
+
+        <div class="hero-pill-row reveal-item" style="--d: 280ms">
+          <span>✓ 100% Local &amp; Offline</span>
+          <span>✓ 10 File Families</span>
+          <span>✓ Convert · Tools · Actions</span>
+          <span>✓ MIT Licensed</span>
+        </div>
+
+        <div class="hero-cta reveal-item" style="--d: 350ms">
+          <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+            Download v0.1.0
+          </a>
+          <button class="btn btn-secondary btn-lg" type="button" data-go-slide="1">
+            Try Live Wheel →
+          </button>
+          <button class="btn btn-ghost btn-lg" type="button" data-go-slide="7">
+            Install Guide
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: Interactive FileWheel Simulator -->
+    <section class="slide" data-title="Live Wheel" data-index="1">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Interactive Preview</span>
+            <h2>Spin the FileWheel right in your browser</h2>
+          </div>
+          <div class="demo-mode-bar" role="tablist" aria-label="Wheel operation mode">
+            <button class="chip-btn active" data-wheel-mode="convert" type="button">
+              Convert <kbd>Shift</kbd>
+            </button>
+            <button class="chip-btn" data-wheel-mode="tools" type="button">
+              Tools <kbd>Ctrl</kbd>
+            </button>
+            <button class="chip-btn" data-wheel-mode="actions" type="button">
+              Actions <kbd>Alt</kbd>
+            </button>
+          </div>
+        </div>
+
+        <div class="simulator-grid reveal-item" style="--d: 110ms">
+          <!-- Left: File Queue & Sample Picker -->
+          <div class="sim-panel sim-files-panel">
+            <div class="sim-panel-head">
+              <span class="sim-eyebrow">1 · SELECT OR DRAG A FILE</span>
+              <span class="sim-badge" id="simFamilyBadge">Images</span>
+            </div>
+
+            <div class="sample-file-list" id="sampleFileList">
+              <button class="sample-file active" data-file-id="image" draggable="true" type="button">
+                <span class="sf-icon">🖼️</span>
+                <span class="sf-meta">
+                  <strong>sunset-photo.png</strong>
+                  <small>Image · 4.2 MB · PNG</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+              <button class="sample-file" data-file-id="video" draggable="true" type="button">
+                <span class="sf-icon">🎬</span>
+                <span class="sf-meta">
+                  <strong>demo-capture.mov</strong>
+                  <small>Video · 28.4 MB · MOV</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+              <button class="sample-file" data-file-id="audio" draggable="true" type="button">
+                <span class="sf-icon">🎵</span>
+                <span class="sf-meta">
+                  <strong>master-track.flac</strong>
+                  <small>Audio · 34.1 MB · FLAC</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+              <button class="sample-file" data-file-id="pdf" draggable="true" type="button">
+                <span class="sf-icon">📄</span>
+                <span class="sf-meta">
+                  <strong>quarterly-brief.pdf</strong>
+                  <small>PDF · 1.8 MB · 12 pages</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+              <button class="sample-file" data-file-id="doc" draggable="true" type="button">
+                <span class="sf-icon">📝</span>
+                <span class="sf-meta">
+                  <strong>release-notes.docx</strong>
+                  <small>Document · 142 KB · DOCX</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+              <button class="sample-file" data-file-id="archive" draggable="true" type="button">
+                <span class="sf-icon">📦</span>
+                <span class="sf-meta">
+                  <strong>project-assets.rar</strong>
+                  <small>Archive · 12.6 MB · RAR</small>
+                </span>
+                <span class="sf-drag-hint">Drag / Click</span>
+              </button>
+            </div>
+
+            <div class="sim-output-box" id="simOutputBox">
+              <div class="sim-output-head">
+                <span class="sim-status-dot" id="simStatusDot"></span>
+                <span id="simStatusTitle">Ready · Hover or click any wedge</span>
+              </div>
+              <div class="sim-progress-track">
+                <div class="sim-progress-fill" id="simProgressFill"></div>
+              </div>
+              <div class="sim-output-path" id="simOutputPath">
+                Outputs save beside originals (collision-safe `_2` suffixes).
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive Radial SVG Wheel -->
+          <div class="sim-wheel-stage" id="simWheelStage">
+            <div class="sim-wheel-topbar">
+              <span class="sim-hint-text">Hover wedges for accent glow &amp; sound · Click or drop file to run</span>
+              <span class="sim-engine-pill" id="simEnginePill">Engine: ImageMagick 7</span>
+            </div>
+
+            <div class="wheel-canvas-wrap" id="wheelDropZone">
+              <svg id="radialWheelSvg" viewBox="0 0 420 420" class="radial-wheel-svg" role="group" aria-label="Interactive FileWheel radial menu"></svg>
+              <div class="wheel-center-pill" id="wheelCenterPill">
+                <span class="wc-mode" id="wcModeLabel">CONVERT</span>
+                <strong class="wc-title" id="wcTitle">sunset-photo.png</strong>
+                <small class="wc-sub" id="wcSub">8 operations</small>
+              </div>
+            </div>
+
+            <div class="sim-wheel-footer">
+              <div class="floating-target-demo" id="floatingTargetDemo" title="Drop a sample file here">
+                <img src="assets/filewheel.svg" alt="" width="24" height="24" />
+                <span>Floating Edge Drop Target</span>
+              </div>
+              <span class="sim-kbd-note">Keys: <kbd>Shift</kbd> Convert · <kbd>Ctrl</kbd> Tools · <kbd>Alt</kbd> Actions</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: How It Works + Real App Screenshot -->
+    <section class="slide" data-title="Workflow" data-index="2">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Effortless Workflow</span>
+            <h2>From file manager to finished output in one gesture</h2>
+          </div>
+        </div>
+
+        <div class="workflow-split">
+          <div class="workflow-steps reveal-item" style="--d: 100ms">
+            <article class="step-card">
+              <span class="step-num">01</span>
+              <div>
+                <h3>Drag to the floating target</h3>
+                <p>Grab one or many files from Dolphin, Nautilus, or Windows File Explorer and drag them onto the floating orange target at the right edge of your screen.</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-num">02</span>
+              <div>
+                <h3>Glide onto a rounded wedge</h3>
+                <p>The radial wheel blooms immediately with only the valid operations for your file family. Tap <strong>Shift</strong> (Convert), <strong>Ctrl</strong> (Tools), or <strong>Alt</strong> (Actions) mid-drag.</p>
+              </div>
+            </article>
+
+            <article class="step-card">
+              <span class="step-num">03</span>
+              <div>
+                <h3>Release — saved beside the original</h3>
+                <p>Jobs run asynchronously in the background with real progress and cancellation. Existing filenames automatically get a safe numeric suffix (<code>_2</code>, <code>_3</code>).</p>
+              </div>
+            </article>
+
+            <div class="kbd-strip">
+              <span><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> Select wedge</span>
+              <span><kbd>Enter</kbd> Apply</span>
+              <span><kbd>Esc</kbd> Hide wheel</span>
+              <span><kbd>--background</kbd> Target-only</span>
+            </div>
+          </div>
+
+          <figure class="screenshot-showcase reveal-item" style="--d: 180ms">
+            <button class="screenshot-frame" type="button" data-lightbox="assets/filewheel.png" data-caption="FileWheel main window showing the image conversion wheel, file list, and completed conversion">
+              <img src="assets/filewheel.png" alt="FileWheel showing the image conversion wheel, file list, and a completed conversion" loading="lazy" />
+              <span class="zoom-badge">Click to zoom ⤢</span>
+            </button>
+            <figcaption>Native GTK4 radial wheel with rounded wedges, icons above labels, and background job progress.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: Formats & Optional Engines -->
+    <section class="slide" data-title="Formats & Engines" data-index="3">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Broad Format Coverage</span>
+            <h2>10 file families powered by modular local engines</h2>
+          </div>
+          <div class="format-filter-bar" role="tablist" aria-label="Filter format families">
+            <button class="chip-btn active" data-fmt-filter="all" type="button">All (10)</button>
+            <button class="chip-btn" data-fmt-filter="media" type="button">Media</button>
+            <button class="chip-btn" data-fmt-filter="docs" type="button">Docs &amp; PDF</button>
+            <button class="chip-btn" data-fmt-filter="system" type="button">Archives &amp; More</button>
+          </div>
+        </div>
+
+        <div class="formats-grid reveal-item" style="--d: 100ms" id="formatsGrid">
+          <article class="format-card" data-cat="media">
+            <div class="fc-head"><span>🖼️ Images</span><span class="fc-engine">ImageMagick 7</span></div>
+            <p class="fc-formats">JPG, PNG, WebP, HEIC, TIFF, AVIF, BMP, PDF export (SVG input)</p>
+            <p class="fc-tools"><strong>Tools:</strong> Resize 1280, Compress JPEG, Strip metadata, Rotate, Grayscale</p>
+          </article>
+          <article class="format-card" data-cat="media">
+            <div class="fc-head"><span>🎵 Audio</span><span class="fc-engine">FFmpeg</span></div>
+            <p class="fc-formats">MP3, M4A, WAV, FLAC, OGG (Vorbis), Opus, AIFF, WMA</p>
+            <p class="fc-tools"><strong>Tools:</strong> Strip metadata, Normalize, First 30s, Mono, Compress</p>
+          </article>
+          <article class="format-card" data-cat="media">
+            <div class="fc-head"><span>🎬 Video &amp; GIF</span><span class="fc-engine">FFmpeg</span></div>
+            <p class="fc-formats">MP4, MOV, MKV, WebM, AVI, WMV, GIF, MP3 export</p>
+            <p class="fc-tools"><strong>Tools:</strong> Compress, Strip metadata, Mute, First 10s, Save frame</p>
+          </article>
+          <article class="format-card" data-cat="docs">
+            <div class="fc-head"><span>📄 PDF</span><span class="fc-engine">LibreOffice · Poppler · QPDF</span></div>
+            <p class="fc-formats">DOCX, PPTX, XLSX, JPG/PNG (300 DPI), EPUB, TXT, MD</p>
+            <p class="fc-tools"><strong>Tools:</strong> All pages export, ZIP, optional QPDF metadata removal</p>
+          </article>
+          <article class="format-card" data-cat="docs">
+            <div class="fc-head"><span>📝 Documents</span><span class="fc-engine">LibreOffice · Python 3</span></div>
+            <p class="fc-formats">DOCX, Markdown, TXT, EPUB 3, HTML (Pages, RTF/RTFD, clippings input)</p>
+            <p class="fc-tools"><strong>Tools:</strong> Copy text, Copy word count, ZIP</p>
+          </article>
+          <article class="format-card" data-cat="docs">
+            <div class="fc-head"><span>📊 Slides &amp; Sheets</span><span class="fc-engine">LibreOffice · Poppler</span></div>
+            <p class="fc-formats">PPT/PPTX → PDF/JPG/PNG · XLSX, ODS, CSV, TSV, PDF export</p>
+            <p class="fc-tools"><strong>Tools:</strong> 300 DPI slide export, ZIP, SHA-256 hashing</p>
+          </article>
+          <article class="format-card" data-cat="system">
+            <div class="fc-head"><span>💬 Subtitles</span><span class="fc-engine">FFmpeg</span></div>
+            <p class="fc-formats">SRT, VTT, TXT export without timestamps</p>
+            <p class="fc-tools"><strong>Tools:</strong> Clean text extraction, ZIP, SHA-256</p>
+          </article>
+          <article class="format-card" data-cat="system">
+            <div class="fc-head"><span>📦 Archives &amp; Folders</span><span class="fc-engine">libarchive / tar</span></div>
+            <p class="fc-formats">ZIP, TAR, GZIP (.tar.gz), RAR input · Any file/folder</p>
+            <p class="fc-tools"><strong>Tools:</strong> Repack without extracting, SHA-256, Copy path, Reveal, Preview, Trash</p>
+          </article>
+        </div>
+
+        <div class="engines-note reveal-item" style="--d: 200ms">
+          <strong>Every engine is optional:</strong> FileWheel starts cleanly without them, disables only unavailable operations, and shows what's missing under <em>Conversion engines</em>.
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: Appearance & Live Theme Studio -->
+    <section class="slide" data-title="Appearance" data-index="4">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Live Theme Studio</span>
+            <h2>8 signature accents, custom hex &amp; tactile feedback</h2>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="restoreAccentBtn" type="button">Restore defaults</button>
+        </div>
+
+        <div class="appearance-split">
+          <div class="appearance-controls-card reveal-item" style="--d: 100ms">
+            <div class="ac-group">
+              <span class="ac-label">Theme mode (live preview)</span>
+              <div class="ac-theme-pills">
+                <button class="chip-btn active" data-set-theme="dark" type="button">Dark</button>
+                <button class="chip-btn" data-set-theme="light" type="button">Light</button>
+                <button class="chip-btn" data-set-theme="system" type="button">Follow system</button>
+              </div>
+            </div>
+
+            <div class="ac-group">
+              <span class="ac-label">Accent color — updates the whole page live</span>
+              <div class="swatch-grid" id="accentSwatchGrid"></div>
+              <div class="custom-hex-row">
+                <input type="color" id="customColorPicker" value="#FC9259" aria-label="Custom accent color picker" />
+                <input type="text" id="customHexInput" value="#FC9259" maxlength="7" spellcheck="false" aria-label="Custom hex color" />
+                <span class="contrast-badge" id="contrastBadge">Auto contrast ink ✓</span>
+              </div>
+            </div>
+
+            <div class="ac-group">
+              <span class="ac-label">Hover feedback</span>
+              <div class="ac-toggles">
+                <label class="toggle-check">
+                  <input type="checkbox" id="hoverGlowCheck" checked />
+                  <span>Accent glow on wedges &amp; buttons</span>
+                </label>
+                <label class="toggle-check">
+                  <input type="checkbox" id="hoverSoundCheck" checked />
+                  <span>Quiet hover audio cue (<code>hover.wav</code>)</span>
+                </label>
+              </div>
+              <div class="ac-test-row">
+                <button class="btn btn-primary btn-sm" id="testEffectsBtn" type="button">Test effects</button>
+                <span class="ac-test-caption" id="testEffectsCaption">Click to preview enabled glow &amp; sound</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="appearance-gallery reveal-item" style="--d: 180ms">
+            <button class="gallery-card" type="button" data-lightbox="assets/filewheel-light.png" data-caption="FileWheel in Light mode with Blue accent highlight">
+              <img src="assets/filewheel-light.png" alt="FileWheel in light mode with blue accent" loading="lazy" />
+              <span>Light mode + Blue accent</span>
+            </button>
+            <button class="gallery-card" type="button" data-lightbox="assets/filewheel-appearance.png" data-caption="Appearance dialog with Dark/Light/System, 8 presets, custom hex, and hover feedback">
+              <img src="assets/filewheel-appearance.png" alt="FileWheel Appearance settings panel" loading="lazy" />
+              <span>Appearance controls</span>
+            </button>
+            <button class="gallery-card" type="button" data-lightbox="assets/filewheel-rounded-buttons.png" data-caption="Rounded wedge buttons with soft shadows and crisp cut-away gaps">
+              <img src="assets/filewheel-rounded-buttons.png" alt="FileWheel rounded wedge buttons" loading="lazy" />
+              <span>Rounded wedges</span>
+            </button>
+            <button class="gallery-card" type="button" data-lightbox="assets/filewheel-hover-preview.png" data-caption="Test effects preview inside the Appearance panel">
+              <img src="assets/filewheel-hover-preview.png" alt="FileWheel hover preview controls" loading="lazy" />
+              <span>Hover feedback test</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: Cross-Platform Desktop Integration -->
+    <section class="slide" data-title="Linux & Windows" data-index="5">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Native Desktop Integration</span>
+            <h2>One Rust + GTK4 codebase, tailored for both desktops</h2>
+          </div>
+        </div>
+
+        <div class="platform-grid">
+          <article class="platform-card reveal-item" style="--d: 100ms">
+            <div class="pc-head">
+              <span class="pc-icon">🐧</span>
+              <div>
+                <h3>Linux (Wayland &amp; X11)</h3>
+                <span class="pc-sub">Tested on KDE Wayland · Flatpak · Nix Flake · Source</span>
+              </div>
+            </div>
+            <ul class="pc-list">
+              <li><strong>Wayland layer-shell:</strong> Floating drop target and radial wheel use <code>gtk4-layer-shell</code>, with automatic regular GTK window fallback on other compositors.</li>
+              <li><strong>Tray &amp; background mode:</strong> System tray opens the main window or toggles the target; <code>filewheel --background</code> starts target-only.</li>
+              <li><strong>Desktop-aware audio &amp; theme:</strong> Follows XDG Desktop Portal theme changes and desktop event-audio volume via optional <code>libcanberra</code>.</li>
+              <li><strong>Zero global hijacking:</strong> Respects Wayland security boundaries — no global Shift-drag interception, no forced file associations.</li>
+            </ul>
+          </article>
+
+          <article class="platform-card reveal-item" style="--d: 180ms">
+            <div class="pc-head">
+              <span class="pc-icon">🪟</span>
+              <div>
+                <h3>Windows 10 &amp; 11 (x86_64)</h3>
+                <span class="pc-sub">Inno Setup Installer · Portable ZIP · Win32 Native Shell</span>
+              </div>
+            </div>
+            <ul class="pc-list">
+              <li><strong>Always-on-top edge target:</strong> Native Win32 tool-window styling keeps the orange drop target accessible without cluttering your taskbar.</li>
+              <li><strong>Tray &amp; optional sign-in launch:</strong> Close to tray, right-click for Show/Hide target or Quit, with optional startup toggle in the installer.</li>
+              <li><strong>No admin rights needed:</strong> Installs cleanly into <code>%LOCALAPPDATA%\Programs\FileWheel</code> or runs completely unregistered from the Portable ZIP.</li>
+              <li><strong>Automatic engine discovery:</strong> Finds <code>winget</code>-installed engines on <code>PATH</code> or default folders — built-in <code>tar.exe</code> handles ZIP/TAR/GZIP out of the box.</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: Safety, Privacy & Architecture -->
+    <section class="slide" data-title="Architecture" data-index="6">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Engineered for Trust</span>
+            <h2>Built in Rust with strict safety &amp; zero shell injection</h2>
+          </div>
+        </div>
+
+        <div class="arch-grid">
+          <article class="arch-card reveal-item" style="--d: 80ms">
+            <span class="arch-icon">🛡️</span>
+            <h3>Zero Shell Invocation</h3>
+            <p>Core conversion jobs invoke executable paths with explicit argument arrays — filenames with quotes, spaces, or shell punctuation never touch a shell.</p>
+          </article>
+
+          <article class="arch-card reveal-item" style="--d: 130ms">
+            <span class="arch-icon">📁</span>
+            <h3>Private Staging &amp; Safe Naming</h3>
+            <p>Jobs stage inside private temporary folders, reserve collision-safe output names (<code>_2</code>, <code>_3</code>) without overwriting originals, and clean up failed/cancelled runs.</p>
+          </article>
+
+          <article class="arch-card reveal-item" style="--d: 180ms">
+            <span class="arch-icon">⚡</span>
+            <h3>Process-Group Cancellation</h3>
+            <p>Cancelling a job, hitting a timeout, or quitting mid-run terminates the converter's entire process group (Win32 Job Objects / Unix PGIDs), including child wrappers.</p>
+          </article>
+
+          <article class="arch-card reveal-item" style="--d: 230ms">
+            <span class="arch-icon">🔒</span>
+            <h3>Privacy-First Diagnostics</h3>
+            <p>Local logs record only operation, paths, and outcome — clipboard contents, document text, and converter stderr are never written. Zero telemetry.</p>
+          </article>
+
+          <article class="arch-card reveal-item" style="--d: 280ms">
+            <span class="arch-icon">🧪</span>
+            <h3>Real-File Verification Suite</h3>
+            <p>Backed by <code>cargo test</code>, <code>formats_test.py</code>, <code>--self-test</code>, <code>--smoke-test</code> (real GTK drops &amp; theme regressions), and <code>--sound-test</code>.</p>
+          </article>
+
+          <article class="arch-card reveal-item" style="--d: 330ms">
+            <span class="arch-icon">🧩</span>
+            <h3>Clean Modular Layout</h3>
+            <p><code>engine.rs</code> (capabilities &amp; jobs) · <code>wheel.rs</code> (radial geometry &amp; hit-testing) · <code>layer.rs</code> (Wayland FFI) · <code>appearance.rs</code> · <code>main.rs</code>.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: Install & Download -->
+    <section class="slide" data-title="Install" data-index="7">
+      <div class="slide-inner slide-wide">
+        <div class="slide-header compact reveal-item" style="--d: 0ms">
+          <div>
+            <span class="kicker">Get Started</span>
+            <h2>Install FileWheel on Windows or Linux</h2>
+          </div>
+          <div class="install-tabs" role="tablist" aria-label="Installation method">
+            <button class="chip-btn active" data-install-tab="windows" type="button">Windows</button>
+            <button class="chip-btn" data-install-tab="flatpak" type="button">Linux Flatpak</button>
+            <button class="chip-btn" data-install-tab="source" type="button">Linux Source</button>
+            <button class="chip-btn" data-install-tab="nix" type="button">Nix / NixOS</button>
+          </div>
+        </div>
+
+        <div class="install-panels reveal-item" style="--d: 100ms">
+          <!-- Windows Panel -->
+          <div class="install-panel active" data-install-panel="windows">
+            <div class="install-two-col">
+              <div class="install-card">
+                <h3>1. Download Installer or Portable ZIP</h3>
+                <p>No admin rights needed. Installs per-user into <code>%LOCALAPPDATA%\Programs\FileWheel</code>.</p>
+                <div class="install-actions">
+                  <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                    Download FileWheel-Setup-x86_64.exe ↗
+                  </a>
+                  <a href="https://github.com/danny19862025/FileWheel/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    Portable ZIP
+                  </a>
+                </div>
+                <p class="install-note">Verify SHA-256 with <code>Get-FileHash .\FileWheel-Setup-x86_64.exe -Algorithm SHA256</code>.</p>
+              </div>
+
+              <div class="install-card">
+                <div class="code-head">
+                  <span>2. Optional Conversion Engines (PowerShell / winget)</span>
+                  <button class="copy-btn" data-copy-target="codeWin" type="button">Copy</button>
+                </div>
+                <pre id="codeWin"><code>winget install -e --id ImageMagick.ImageMagick
+winget install -e --id Gyan.FFmpeg
+winget install -e --id TheDocumentFoundation.LibreOffice
+winget install -e --id oschwartz10612.Poppler
+winget install -e --id Python.Python.3.13
+winget install -e --id QPDF.QPDF</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linux Flatpak Panel -->
+          <div class="install-panel" data-install-panel="flatpak">
+            <div class="install-two-col">
+              <div class="install-card">
+                <h3>Prebuilt x86_64 Flatpak Test Release</h3>
+                <p>No compilation required. Download <code>FileWheel-full-test-x86_64.flatpak</code> and its <code>.sha256</code> file to <code>~/Downloads</code>.</p>
+                <div class="install-actions">
+                  <a href="https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm">
+                    Download Flatpak Release ↗
+                  </a>
+                </div>
+              </div>
+              <div class="install-card">
+                <div class="code-head">
+                  <span>Verify, install &amp; run</span>
+                  <button class="copy-btn" data-copy-target="codeFlatpak" type="button">Copy</button>
+                </div>
+                <pre id="codeFlatpak"><code>cd ~/Downloads &amp;&amp; sha256sum -c FileWheel-full-test-x86_64.flatpak.sha256
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+flatpak install --user flathub org.gnome.Platform//51
+flatpak install --user ~/Downloads/FileWheel-full-test-x86_64.flatpak
+flatpak run --user --branch=full-test io.github.danny19862025.FileWheel</code></pre>
+              </div>
+            </div>
+          </div>
+
+          <!-- Linux Source Panel -->
+          <div class="install-panel" data-install-panel="source">
+            <div class="install-two-col">
+              <div class="install-card">
+                <div class="code-head">
+                  <span>Arch / CachyOS / EndeavourOS Dependencies</span>
+                  <button class="copy-btn" data-copy-target="codeArch" type="button">Copy</button>
+                </div>
+                <pre id="codeArch"><code>sudo pacman -Syu --needed base-devel git rust gtk4 gtk4-layer-shell \
+  desktop-file-utils xdg-utils imagemagick ffmpeg libreoffice-fresh \
+  poppler libarchive python coreutils qpdf ttf-dejavu</code></pre>
+                <p class="install-note">Ubuntu 26.04+, Debian 13+, Fedora &amp; immutable distros are in <code>docs/INSTALL.md</code>.</p>
+              </div>
+              <div class="install-card">
+                <div class="code-head">
+                  <span>Clone &amp; user-local install (no sudo)</span>
+                  <button class="copy-btn" data-copy-target="codeClone" type="button">Copy</button>
+                </div>
+                <pre id="codeClone"><code>git clone https://github.com/danny19862025/FileWheel.git
+cd FileWheel
+bash install.sh
+"$HOME/.local/bin/filewheel"</code></pre>
+                <p class="install-note">Installs to <code>~/.local/bin/filewheel</code> plus launcher &amp; icon.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nix Panel -->
+          <div class="install-panel" data-install-panel="nix">
+            <div class="install-two-col">
+              <div class="install-card">
+                <h3>Run Instantly with Nix Flakes</h3>
+                <p>Works on NixOS or any Linux distribution with Nix enabled — bundles GTK4, layer-shell, and optional <code>libcanberra</code> audio support.</p>
+                <div class="install-actions">
+                  <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/NIXOS.md" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">
+                    Read NixOS Guide ↗
+                  </a>
+                </div>
+              </div>
+              <div class="install-card">
+                <div class="code-head">
+                  <span>Run directly from GitHub</span>
+                  <button class="copy-btn" data-copy-target="codeNix" type="button">Copy</button>
+                </div>
+                <pre id="codeNix"><code>nix run github:danny19862025/FileWheel</code></pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="slide-footer reveal-item" style="--d: 200ms">
+          <span>Created by <strong>Danny Rudd</strong> · MIT License</span>
+          <div class="footer-links">
+            <a href="https://github.com/danny19862025/FileWheel" target="_blank" rel="noopener noreferrer">Repository</a>
+            <a href="https://github.com/danny19862025/FileWheel/releases" target="_blank" rel="noopener noreferrer">Releases</a>
+            <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/WINDOWS.md" target="_blank" rel="noopener noreferrer">Windows Guide</a>
+            <a href="https://github.com/danny19862025/FileWheel/blob/main/docs/INSTALL.md" target="_blank" rel="noopener noreferrer">Linux Guide</a>
+          </div>
+        </footer>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Floating Bottom Auto-Slide Deck Controls -->
+  <nav class="deck-dock" aria-label="Slide navigation and auto-slide controls">
+    <div class="dock-group">
+      <button class="dock-btn" id="prevSlideBtn" type="button" title="Previous slide (←)" aria-label="Previous slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+      </button>
+      <div class="slide-dots" id="slideDots" role="tablist" aria-label="Slides"></div>
+      <button class="dock-btn" id="nextSlideBtn" type="button" title="Next slide (→)" aria-label="Next slide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </button>
+    </div>
+
+    <div class="dock-divider" aria-hidden="true"></div>
+
+    <div class="dock-group">
+      <button class="dock-play-btn" id="autoPlayToggleBtn" type="button" title="Toggle Auto-Slide (Space)" aria-pressed="true">
+        <svg class="icon-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>
+        <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+        <span id="autoPlayLabel">Auto</span>
+      </button>
+      <button class="dock-speed-btn" id="speedCycleBtn" type="button" title="Cycle auto-slide interval">
+        <span id="speedLabel">8s</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Slide Overview Modal (Press O) -->
+  <div class="overview-modal" id="overviewModal" hidden aria-modal="true" role="dialog" aria-label="Slide overview">
+    <div class="overview-backdrop" id="overviewBackdrop"></div>
+    <div class="overview-content">
+      <div class="overview-head">
+        <h3>Slide Overview</h3>
+        <button class="icon-btn" id="overviewCloseBtn" type="button" aria-label="Close overview">✕</button>
+      </div>
+      <div class="overview-grid" id="overviewGrid"></div>
+    </div>
+  </div>
+
+  <!-- Screenshot Lightbox -->
+  <div class="lightbox-modal" id="lightboxModal" hidden aria-modal="true" role="dialog" aria-label="Screenshot preview">
+    <div class="overview-backdrop" id="lightboxBackdrop"></div>
+    <figure class="lightbox-figure">
+      <button class="lightbox-close" id="lightboxCloseBtn" type="button" aria-label="Close preview">✕</button>
+      <img id="lightboxImg" src="" alt="" />
+      <figcaption id="lightboxCaption"></figcaption>
+    </figure>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

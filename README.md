@@ -2,7 +2,7 @@
 
 A native **Rust + GTK4** desktop app for converting files and applying quick file tools. Rebuilt from the observed behavior of the original macOS FanDrop 0.1, with Linux conversion engines and desktop integration. A [Windows build](docs/WINDOWS.md) shares the same code, with an always-on-top drop target and a tray icon. The interface and icon are new; no macOS executable or Tangerine assets are bundled.
 
-**[Download for Windows](https://github.com/danny19862025/FileWheel/releases/latest)** · **[Download the Linux Flatpak](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#installation)
+**🌐 [Visit the FileWheel Website](https://danny19862025.github.io/FileWheel/)** · **[Download for Windows](https://github.com/danny19862025/FileWheel/releases/latest)** · **[Download the Linux Flatpak](https://github.com/danny19862025/FileWheel/releases/tag/flatpak-full-test-1)** · [Installation instructions](#installation)
 
 ![FileWheel showing the image conversion wheel, file list, and a completed conversion](docs/screenshots/filewheel.png)
 
