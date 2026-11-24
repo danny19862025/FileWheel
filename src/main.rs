@@ -1,3 +1,6 @@
+// Release builds on Windows are GUI programs: no console window behind them.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod about;
 mod appearance;
 mod appearance_ui;
@@ -5,9 +8,12 @@ mod branding;
 mod engine;
 mod feedback;
 mod layer;
+mod platform;
 mod smoke;
 mod updates;
 mod wheel;
+#[cfg(windows)]
+mod win32;
 
 use appearance::{Color, Palette, Preferences};
 use engine::{Kind, Mode, Tools};
@@ -70,6 +76,7 @@ struct Ui {
     appearance_file: RefCell<Option<PathBuf>>,
     appearance_dialog: RefCell<Option<AppearanceDialog>>,
     css: gtk::CssProvider,
+    #[cfg_attr(windows, allow(dead_code))] // The portal watch is Linux-only.
     theme_subscription: RefCell<Option<gio::SignalSubscription>>,
     hover_sound: feedback::HoverSound,
     paths: RefCell<Vec<PathBuf>>,
@@ -80,9 +87,19 @@ struct Ui {
     busy: Cell<bool>,
     drag_inside: Cell<u32>,
     cancel: Arc<AtomicBool>,
-    tools: Tools,
+    tools: RefCell<Tools>,
+    probing: Cell<bool>,
+    menu: RefCell<Option<Rc<Menu>>>,
+    tray_registered: Cell<bool>,
     layer_supported: bool,
     quitting: Cell<bool>,
+}
+/// Operations and their availability for the current selection and mode.
+/// Computing availability touches the filesystem for every file, so it is
+/// cached and rebuilt by `refresh()` instead of on every pointer motion.
+struct Menu {
+    choices: Vec<&'static str>,
+    disabled: Vec<Option<String>>,
 }
 struct AppearanceDialog {
     window: gtk::Window,
@@ -111,10 +128,16 @@ impl Ui {
             .as_deref()
             .map(Preferences::load)
             .unwrap_or_default();
-        let system_dark = gtk::Settings::default().is_some_and(|s| {
-            s.is_gtk_application_prefer_dark_theme()
-                || s.gtk_theme_name()
-                    .is_some_and(|name| name.to_ascii_lowercase().contains("dark"))
+        #[cfg(windows)]
+        let windows_dark = win32::system_dark();
+        #[cfg(not(windows))]
+        let windows_dark = None;
+        let system_dark = windows_dark.unwrap_or_else(|| {
+            gtk::Settings::default().is_some_and(|s| {
+                s.is_gtk_application_prefer_dark_theme()
+                    || s.gtk_theme_name()
+                        .is_some_and(|name| name.to_ascii_lowercase().contains("dark"))
+            })
         });
         let css = gtk::CssProvider::new();
         css.load_from_data(&Palette::new(appearance, system_dark).css());
@@ -375,12 +398,48 @@ impl Ui {
             busy: Cell::new(false),
             drag_inside: Cell::new(0),
             cancel: Arc::new(AtomicBool::new(false)),
-            tools: Tools::discover(),
+            // Engine probes can take seconds; outside tests they run in the
+            // background so the window appears immediately.
+            tools: RefCell::new(if testing {
+                Tools::discover()
+            } else {
+                Tools::empty()
+            }),
+            probing: Cell::new(!testing),
+            menu: RefCell::new(None),
+            tray_registered: Cell::new(false),
             layer_supported,
             quitting: Cell::new(false),
         });
         ui.update_theme();
         ui.watch_system_theme();
+        if !testing {
+            let (send, receive) = mpsc::channel();
+            std::thread::spawn(move || {
+                engine::clean_stale();
+                let _ = send.send(Tools::discover());
+            });
+            let weak = Rc::downgrade(&ui);
+            glib::timeout_add_local(Duration::from_millis(100), move || {
+                let Some(u) = weak.upgrade() else {
+                    return glib::ControlFlow::Break;
+                };
+                match receive.try_recv() {
+                    Ok(tools) => {
+                        *u.tools.borrow_mut() = tools;
+                        u.probing.set(false);
+                        u.refresh();
+                        glib::ControlFlow::Break
+                    }
+                    Err(mpsc::TryRecvError::Empty) => glib::ControlFlow::Continue,
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        u.probing.set(false);
+                        u.refresh();
+                        glib::ControlFlow::Break
+                    }
+                }
+            });
+        }
         let weak = Rc::downgrade(&ui);
         pad_area.set_draw_func(move |_, cr, _, _| {
             let Some(u) = weak.upgrade() else {
@@ -431,9 +490,21 @@ impl Ui {
         let u = ui.clone();
         quit.connect_clicked(move |_| u.quit());
         let u = ui.clone();
-        hide.connect_clicked(move |_| u.window.set_visible(false));
+        hide.connect_clicked(move |_| {
+            if u.tray_registered.get() || u.pad.is_visible() {
+                u.window.set_visible(false);
+            } else {
+                // Without a tray icon or drop target there would be no way back.
+                u.window.minimize();
+            }
+        });
         let u = ui.clone();
         ui.window.connect_close_request(move |_| {
+            if !u.tray_registered.get() {
+                // No tray (e.g. GNOME without an extension): closing quits.
+                u.quit();
+                return glib::Propagation::Stop;
+            }
             u.window.set_visible(false);
             u.floating.set_visible(false);
             glib::Propagation::Stop
@@ -451,6 +522,15 @@ impl Ui {
             u.pad.set_visible(b.is_active());
             if !b.is_active() {
                 u.floating.set_visible(false);
+            }
+        });
+        // Keep the checkbox in sync when the tray toggles the target.
+        let toggle = drop_toggle.downgrade();
+        ui.pad.connect_visible_notify(move |pad| {
+            if let Some(toggle) = toggle.upgrade() {
+                if toggle.is_active() != pad.is_visible() {
+                    toggle.set_active(pad.is_visible());
+                }
             }
         });
         let u = ui.clone();
@@ -565,7 +645,20 @@ impl Ui {
             .cloned()
             .unwrap_or_else(|| self.paths.borrow().clone())
     }
+    fn menu(&self) -> Rc<Menu> {
+        if let Some(menu) = self.menu.borrow().as_ref() {
+            return menu.clone();
+        }
+        let choices = self.compute_choices();
+        let disabled = choices.iter().map(|op| self.compute_disabled(op)).collect();
+        let menu = Rc::new(Menu { choices, disabled });
+        *self.menu.borrow_mut() = Some(menu.clone());
+        menu
+    }
     fn choices(&self) -> Vec<&'static str> {
+        self.menu().choices.clone()
+    }
+    fn compute_choices(&self) -> Vec<&'static str> {
         let paths = self.effective();
         if self.mode.get() == Mode::Actions {
             return engine::menu(Kind::Other, Mode::Actions);
@@ -595,13 +688,24 @@ impl Ui {
         if self.busy.get() {
             return Some("Wait for the current job or cancel it.".into());
         }
+        let menu = self.menu();
+        match menu.choices.iter().position(|c| *c == op) {
+            Some(i) => menu.disabled[i].clone(),
+            None => self.compute_disabled(op),
+        }
+    }
+    fn compute_disabled(&self, op: &str) -> Option<String> {
         let paths = self.effective();
         if paths.is_empty() {
             return Some("Add a file first".into());
         }
+        if self.probing.get() && self.mode.get() != Mode::Actions {
+            return Some("Checking conversion engines…".into());
+        }
+        let tools = self.tools.borrow();
         paths
             .iter()
-            .find_map(|p| self.tools.unavailable_for(p, self.mode.get(), op))
+            .find_map(|p| tools.unavailable_for(p, self.mode.get(), op))
     }
     fn redraw(&self) {
         self.ring.queue_draw();
@@ -645,6 +749,7 @@ impl Ui {
         );
     }
     fn refresh(self: &Rc<Self>) {
+        self.menu.take();
         self.redraw();
         for (i, mode) in [Mode::Convert, Mode::Tools, Mode::Actions]
             .into_iter()
@@ -688,6 +793,11 @@ impl Ui {
                     .unwrap_or_else(|_| "Unavailable".into());
                 row.append(&label(&size, "file-kind"));
                 self.files_box.append(&row);
+            }
+            if paths.len() > 40 {
+                let more = label(&format!("+ {} more", paths.len() - 40), "muted");
+                more.set_margin_top(6);
+                self.files_box.append(&more);
             }
         }
         while let Some(child) = self.choices_box.first_child() {
@@ -864,7 +974,7 @@ impl Ui {
         }
         let mode = self.mode.get();
         let op = op.to_string();
-        let tools = self.tools.clone();
+        let tools = self.tools.borrow().clone();
         let cancel = self.cancel.clone();
         cancel.store(false, Ordering::Relaxed);
         self.busy.set(true);
@@ -1015,13 +1125,13 @@ impl Ui {
                     if result == Ok(1) {
                         let mut errors = vec![];
                         for path in &paths {
-                            if let Err(e) = gio::File::for_path(path).trash(gio::Cancellable::NONE)
-                            {
-                                errors.push(e.to_string());
+                            match gio::File::for_path(path).trash(gio::Cancellable::NONE) {
+                                // Drop trashed files from the selection even if others fail.
+                                Ok(()) => u.paths.borrow_mut().retain(|p| p != path),
+                                Err(e) => errors.push(e.to_string()),
                             }
                         }
                         if errors.is_empty() {
-                            u.paths.borrow_mut().clear();
                             u.say(
                                 "Moved to Trash",
                                 "Your desktop's Trash can restore these files.",
@@ -1041,6 +1151,16 @@ impl Ui {
         if paths.is_empty() {
             return;
         }
+        #[cfg(windows)]
+        {
+            // Explorer can select one item from the command line.
+            win32::reveal(&paths[0]);
+        }
+        #[cfg(not(windows))]
+        self.reveal_with_file_manager(paths);
+    }
+    #[cfg(not(windows))]
+    fn reveal_with_file_manager(&self, paths: &[PathBuf]) {
         let uris = paths
             .iter()
             .map(|p| gio::File::for_path(p).uri().to_string())
@@ -1079,22 +1199,31 @@ impl Ui {
                 picture.set_can_shrink(true);
                 window.set_child(Some(&picture));
             }
+            // The Windows build ships without GStreamer: use the default player.
+            Kind::Video | Kind::Audio if cfg!(windows) => {
+                open(path);
+                return;
+            }
             Kind::Video | Kind::Audio => {
                 let video = gtk::Video::for_filename(Some(path));
                 video.set_autoplay(false);
                 window.set_child(Some(&video));
             }
             Kind::Document
-                if path
-                    .extension()
-                    .map(|e| e == "txt" || e == "md")
-                    .unwrap_or(false) =>
+                if path.extension().is_some_and(|e| {
+                    ["txt", "md", "markdown"]
+                        .iter()
+                        .any(|x| e.eq_ignore_ascii_case(x))
+                }) =>
             {
                 use std::io::Read;
-                let mut text = String::new();
+                // Read bytes and decode lossily: the 128 KiB cut can split a
+                // UTF-8 character, and some text files are not UTF-8 at all.
+                let mut bytes = Vec::new();
                 if let Ok(f) = std::fs::File::open(path) {
-                    let _ = f.take(128 * 1024).read_to_string(&mut text);
+                    let _ = f.take(128 * 1024).read_to_end(&mut bytes);
                 }
+                let text = String::from_utf8_lossy(&bytes);
                 let view = gtk::TextView::builder()
                     .editable(false)
                     .monospace(true)
@@ -1188,8 +1317,8 @@ impl Ui {
         window.present();
     }
     fn show_dependencies(&self) {
-        let mut lines = self
-            .tools
+        let tools = self.tools.borrow();
+        let mut lines = tools
             .0
             .iter()
             .map(|(name, path)| format!("✓ {name}  ·  {}", path.display()))
@@ -1203,14 +1332,23 @@ impl Ui {
             "python3",
             "qpdf",
             "bsdtar",
-            "sha256sum",
         ] {
-            if !self.tools.has(name) {
-                lines.push(format!("— {name}  ·  not installed"));
+            if !tools.has(name) {
+                match engine::winget_id(name).filter(|_| cfg!(windows)) {
+                    Some(id) => lines.push(format!(
+                        "— {name}  ·  not installed  ·  winget install -e --id {id}"
+                    )),
+                    None => lines.push(format!("— {name}  ·  not installed")),
+                }
             }
         }
+        if self.probing.get() {
+            lines.push("Still checking installed engines…".into());
+        }
         lines.push(
-            if self.layer_supported {
+            if cfg!(windows) {
+                "✓ Always-on-top floating target"
+            } else if self.layer_supported {
                 "✓ Wayland floating target supported"
             } else {
                 "Floating target uses a regular window on this compositor"
@@ -1256,6 +1394,23 @@ fn human_size(size: u64) -> String {
     }
 }
 
+#[cfg(windows)]
+fn tray(ui: &Rc<Ui>) {
+    let weak = Rc::downgrade(ui);
+    let installed = win32::install_tray(include_bytes!("../data/filewheel.png"), move |action| {
+        let Some(u) = weak.upgrade() else {
+            return;
+        };
+        match action {
+            win32::TrayAction::Open => u.window.present(),
+            win32::TrayAction::ToggleTarget => u.pad.set_visible(!u.pad.is_visible()),
+            win32::TrayAction::Quit => u.quit(),
+        }
+    });
+    ui.tray_registered.set(installed);
+}
+
+#[cfg(not(windows))]
 fn tray(ui: &Rc<Ui>) {
     let Ok(bus) = gio::bus_get_sync(gio::BusType::Session, gio::Cancellable::NONE) else {
         return;
@@ -1303,6 +1458,7 @@ fn tray(ui: &Rc<Ui>) {
         })
         .build();
     if registered.is_ok() {
+        let u = ui.clone();
         bus.call(
             Some("org.kde.StatusNotifierWatcher"),
             "/StatusNotifierWatcher",
@@ -1313,7 +1469,7 @@ fn tray(ui: &Rc<Ui>) {
             gio::DBusCallFlags::NONE,
             2000,
             gio::Cancellable::NONE,
-            |_| {},
+            move |result| u.tray_registered.set(result.is_ok()),
         );
     }
 }
@@ -1384,6 +1540,9 @@ fn main() {
         if let Some(ui) = state.borrow().as_ref() {
             ui.hover_sound.stop();
         }
+        engine::remove_office_profile();
+        #[cfg(windows)]
+        win32::remove_tray();
     });
     let mut argv = vec![args[0].clone()];
     argv.extend(
